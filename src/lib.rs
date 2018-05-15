@@ -7,7 +7,6 @@ pub mod vector_ops;
 pub struct Vector<T>
     where T: Clone + Copy {
     value: Vec<T>
-
 }
 
 #[cfg(test)]

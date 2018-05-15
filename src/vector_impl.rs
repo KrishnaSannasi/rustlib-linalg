@@ -38,15 +38,11 @@ impl<T> Vector<T>
     }
 }
 
+
 impl<T> Vector<T> 
     where T: Clone + Copy + From<u8> + From<f64> + Into<f64> +
           Add<T, Output = T> + Mul<T, Output = T> +
           Sub<T, Output = T> + Div<T, Output = T> {
-    /// the square of the magnitude
-    pub fn magsq(&self) -> T {
-        self.dot(self)
-    }
-
     /// the magnitude
     pub fn mag(&self) -> T {
         T::from(self.magsq().into().sqrt())
@@ -58,6 +54,28 @@ impl<T> Vector<T>
         self / self.mag()
     }
 
+    /// gives the angle between two vectors
+    pub fn angle(&self, other: &Self) -> f64 {
+        let y = self.dot(other).into();
+        let x = (self.magsq() * other.magsq()).into().sqrt();
+
+        (y / x).acos()
+    }
+}
+
+impl<T> Vector<T> 
+    where T: Clone + Copy + From<u8> + Add<T, Output = T> {
+    /// adds the shift value to all the elements in a vector
+    pub fn shift(&self, value: T) -> Self {
+        let mut vec = Vec::new();
+
+        for i in self.value.iter() {
+            vec.push(*i + value);
+        }
+
+        Self::from(vec)
+    }
+
     /// sums up the elements of the vector
     pub fn sum(&self) -> T {
         let mut sum = T::from(0u8);
@@ -65,6 +83,15 @@ impl<T> Vector<T>
             sum = sum + *i;
         }
         sum
+    }
+}
+
+impl<T> Vector<T> 
+    where T: Clone + Copy + From<u8> +
+          Add<T, Output = T> + Mul<T, Output = T> {
+    /// the square of the magnitude
+    pub fn magsq(&self) -> T {
+        self.dot(self)
     }
     
     /// takes the dot product of the two vectors
@@ -77,26 +104,12 @@ impl<T> Vector<T>
 
         dot
     }
+}
 
-    /// gives the angle between two vectors
-    pub fn angle(&self, other: &Self) -> f64 {
-        let y = self.dot(other).into();
-        let x = (self.magsq() * other.magsq()).into().sqrt();
 
-        (y / x).acos()
-    }
-
-    /// adds the shift value to all the elements in a vector
-    pub fn shift(&self, value: T) -> Self {
-        let mut vec = Vec::new();
-
-        for i in self.value.iter() {
-            vec.push(*i + value);
-        }
-
-        Self::from(vec)
-    }
-
+impl<T> Vector<T> 
+    where T: Clone + Copy + From<u8> + Add<T, Output = T> +
+          Sub<T, Output = T> + Mul<T, Output = T> {
     /// linearly interpolates between two vectors
     pub fn lerp(&self, other: &Vector<T>, w: T) -> Result<Self, String> {
         self * (T::from(1u8) - w) + other * w
