@@ -9,10 +9,11 @@ pub struct Vector<T>
     value: Vec<T>
 }
 
+pub type VectorD = Vector<f64>;
+pub type VectorF = Vector<f32>;
+pub type VectorI = Vector<i32>;
+pub type VectorU = Vector<u32>;
+pub type VectorS = Vector<usize>;
+
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+mod tests;
