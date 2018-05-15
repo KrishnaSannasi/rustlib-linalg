@@ -1,7 +1,7 @@
 use std::ops::{Add, Sub, Mul, Div, Index, IndexMut};
 use rand::{Rng, Rand, thread_rng};
 
-use Vector;
+use super::Vector;
 
 // related functions
 impl<T> Vector<T>

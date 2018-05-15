@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 
-use Vector;
+use super::Vector;
 
 impl<T> Add<Vector<T>> for Vector<T>
     where T: Clone + Copy + Add<T, Output = T> {
