@@ -13,6 +13,22 @@ impl<T> Vector<T>
 }
 
 impl<T> Vector<T>
+    where T: Clone + Copy {
+    pub fn into<U>(&self) -> Vector<U>
+        where U: Clone + Copy + From<T> {
+        self.convert(|x| U::from(x.clone()))
+    }
+
+    pub fn convert<U, F>(&self, f: F) -> Vector<U>
+        where U: Clone + Copy,
+              F: Fn(T) -> U {
+        let val: Vec<U> = self.value.iter().map(|x| f(*x)).collect();
+
+        Vector::from(val)
+    }
+}
+
+impl<T> Vector<T>
     where T: Clone + Copy + Rand + From<u8> + From<f64> + Into<f64> +
           Add<T, Output = T> + Mul<T, Output = T> +
           Sub<T, Output = T> + Div<T, Output = T> {
@@ -20,9 +36,11 @@ impl<T> Vector<T>
     pub fn rand(dim: usize) -> Self {
         let mut vec = Vec::new();
         let mut rng = thread_rng();
+        let (two, one) = (T::from(2.0), T::from(1.0));
         
         for _ in 0..dim {
-            vec.push(rng.gen());
+            let v: T = rng.gen();
+            vec.push(v * two - one);
         }
 
         Self::from(vec).norm()
