@@ -14,6 +14,11 @@ impl<T> Vector<T>
 
 impl<T> Vector<T>
     where T: Clone + Copy {
+    /// get the dimension of the vector
+    pub fn dim(&self) -> usize {
+        self.value.len()
+    }
+
     pub fn into<U>(&self) -> Vector<U>
         where U: Clone + Copy + From<T> {
         self.convert(|x| U::from(x.clone()))
@@ -44,15 +49,6 @@ impl<T> Vector<T>
         }
 
         Self::from(vec).norm()
-    }
-}
-
-// immutable methods
-impl<T> Vector<T>
-    where T: Clone + Copy {
-    /// get the dimension of the vector
-    pub fn dim(&self) -> usize {
-        self.value.len()
     }
 }
 
