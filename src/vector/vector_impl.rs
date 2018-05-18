@@ -101,16 +101,19 @@ impl<T> Vector<T>
 }
 
 impl<T> Vector<T> 
-    where T: Clone + Copy + From<u8> +
-          Add<T, Output = T> + Mul<T, Output = T> {
+    where T: Clone + Copy  {
     /// the square of the magnitude
-    pub fn magsq(&self) -> T {
+    pub fn magsq(&self) -> T
+        where T: From<u8> + Add<T, Output = T> + Mul<T, Output = T> {
         self.dot(self)
     }
-    
+
     /// takes the dot product of the two vectors
-    pub fn dot(&self, other: &Self) -> T {
-        let mut dot = T::from(0u8);
+    pub fn dot<U, O>(&self, other: &Vector<U>) -> O 
+    where O: Clone + Copy + From<u8> + Add<O, Output = O>,
+          U: Clone + Copy,
+          T: Clone + Copy + Mul<U, Output = O> {
+        let mut dot = O::from(0u8);
         
         for (i, j) in self.value.iter().zip(other.value.iter()) {
             dot = dot + *i * *j;
@@ -119,7 +122,6 @@ impl<T> Vector<T>
         dot
     }
 }
-
 
 impl<T> Vector<T> 
     where T: Clone + Copy + From<u8> + Add<T, Output = T> +
