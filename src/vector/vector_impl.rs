@@ -4,13 +4,6 @@ use num::traits::*;
 
 use super::Vector;
 
-#[macro_export]
-macro_rules! vector {
-    [$($e: expr),*] => {
-        Vector::from(vec![$($e),*])
-    };
-}
-
 // related functions
 impl<T> Vector<T>
     where T: Clone + Copy {

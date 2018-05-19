@@ -109,6 +109,7 @@ impl<'a, 'b, T, U, O> Sub<&'b Vector<U>> for &'a Vector<T>
     }
 }
 
+/*
 impl<'a, 'b, T, U, O> Mul<&'b Vector<U>> for &'a Vector<T>
     where T: Clone + Copy + Mul<U, Output = O>,
           U: Clone + Copy,
@@ -130,6 +131,7 @@ impl<'a, 'b, T, U, O> Div<&'b Vector<U>> for &'a Vector<T>
         apply!(vec => self, rhs, |(&i, &j)| i / j)
     }
 }
+*/
 
 impl<'a, 'b, T, U, O> Mul<&'b U> for &'a Vector<T>
     where T: Clone + Copy + Mul<U, Output = O>,
