@@ -1,6 +1,4 @@
 use super::*;
-use super::vector_impl::*;
-use super::vector_ops::*;
 
 #[test]
 fn init() {
