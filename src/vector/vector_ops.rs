@@ -2,162 +2,184 @@ use std::ops::{Add, Sub, Mul, Div};
 
 use super::Vector;
 
-impl<T> Add<Vector<T>> for Vector<T>
-    where T: Clone + Copy + Add<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
-
-    fn add(self, rhs: Vector<T>) -> Self::Output {
-        &self + &rhs
+fn apply<T, U, O, F>(t: Vector<T>, u: Vector<U>, f: F) -> Result<Vector<O>, String>
+    where T: Clone + Copy,
+          U: Clone + Copy,
+          O: Clone + Copy,
+          F: Fn((&T, &U)) -> O {
+    if t.dim() != u.dim() {
+        return Err(format!("incompatible sizes"))
+    }
+    else {
+        Ok(Vector::from(t.value.iter()
+                               .zip(u.value.iter())
+                               .map(f)
+                               .collect::<Vec<O>>()))
     }
 }
 
-impl<T> Sub<Vector<T>> for Vector<T>
-    where T: Clone + Copy + Sub<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
-
-    fn sub(self, rhs: Vector<T>) -> Self::Output {
-        &self - &rhs
+fn apply_ref<'a, 'b, T, U, O, F>(t: &'a Vector<T>, u: &'b Vector<U>, f: F) -> Result<Vector<O>, String>
+    where T: Clone + Copy,
+          U: Clone + Copy,
+          O: Clone + Copy,
+          F: Fn((&T, &U)) -> O {
+    if t.dim() != u.dim() {
+        return Err(format!("incompatible sizes"))
+    }
+    else {
+        Ok(Vector::from(t.value.iter()
+                               .zip(u.value.iter())
+                               .map(f)
+                               .collect::<Vec<O>>()))
     }
 }
 
-impl<T> Mul<Vector<T>> for Vector<T>
-    where T: Clone + Copy + Mul<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+fn apply_const<T, O, F>(t: Vector<T>, f: F) -> Vector<O>
+    where T: Clone + Copy,
+          O: Clone + Copy,
+          F: FnMut(&T) -> O {
+    Vector::from(t.value.iter()
+                        .map(f)
+                        .collect::<Vec<O>>())
+}
 
-    fn mul(self, rhs: Vector<T>) -> Self::Output {
-        &self * &rhs
+fn apply_const_ref<'a, T, O, F>(t: &'a Vector<T>, f: F) -> Vector<O>
+    where T: Clone + Copy,
+          O: Clone + Copy,
+          F: FnMut(&'a T) -> O {
+    Vector::from(t.value.iter()
+                        .map(f)
+                        .collect::<Vec<O>>())
+}
+
+impl<T, U, O> Add<Vector<U>> for Vector<T>
+    where T: Clone + Copy + Add<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
+
+    fn add(self, rhs: Vector<U>) -> Self::Output {
+        apply(self, rhs, |(&t, &u)| t + u)
     }
 }
 
-impl<T> Div<Vector<T>> for Vector<T>
-    where T: Clone + Copy + Div<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+impl<T, U, O> Sub<Vector<U>> for Vector<T>
+    where T: Clone + Copy + Sub<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn div(self, rhs: Vector<T>) -> Self::Output {
-        &self / &rhs
+    fn sub(self, rhs: Vector<U>) -> Self::Output {
+        apply(self, rhs, |(&t, &u)| t - u)
     }
 }
 
-impl<T> Mul<T> for Vector<T>
-    where T: Clone + Copy + Mul<T, Output = T> {
-    type Output = Self;
+impl<T, U, O> Mul<Vector<U>> for Vector<T>
+    where T: Clone + Copy + Mul<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn mul(self, rhs: T) -> Self::Output {
-        &self * rhs
+    fn mul(self, rhs: Vector<U>) -> Self::Output {
+        apply(self, rhs, |(&t, &u)| t * u)
     }
 }
 
-impl<T> Div<T> for Vector<T>
-    where T: Clone + Copy + Div<T, Output = T> {
-    type Output = Self;
+impl<T, U, O> Div<Vector<U>> for Vector<T>
+    where T: Clone + Copy + Div<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn div(self, rhs: T) -> Self::Output {
-        &self / rhs
+    fn div(self, rhs: Vector<U>) -> Self::Output {
+        apply(self, rhs, |(&t, &u)| t / u)
     }
 }
 
-impl<'a, 'b, T> Add<&'b Vector<T>> for &'a Vector<T>
-    where T: Clone + Copy + Add<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+impl<T, U, O> Mul<U> for Vector<T>
+    where T: Clone + Copy + Mul<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Vector<O>;
 
-    fn add(self, rhs: &'b Vector<T>) -> Self::Output {
-        if self.dim() != rhs.dim() {
-            return Err(format!("incompatible sizes"))
-        }
-
-        let mut vec = Vec::new();
-
-        for (i, j) in self.value.iter().zip(rhs.value.iter()) {
-            vec.push(*i + *j)
-        }
-
-        Ok(Vector::from(vec))
+    fn mul(self, rhs: U) -> Self::Output {
+        apply_const(self, |&t| t * rhs)
     }
 }
 
-impl<'a, 'b, T> Sub<&'b Vector<T>> for &'a Vector<T>
-    where T: Clone + Copy + Sub<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+impl<T, U, O> Div<U> for Vector<T>
+    where T: Clone + Copy + Div<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Vector<O>;
 
-    fn sub(self, rhs: &'b Vector<T>) -> Self::Output {
-        if self.dim() != rhs.dim() {
-            return Err(format!("incompatible sizes"))
-        }
-
-        let mut vec = Vec::new();
-
-        for (i, j) in self.value.iter().zip(rhs.value.iter()) {
-            vec.push(*i - *j)
-        }
-
-        Ok(Vector::from(vec))
+    fn div(self, rhs: U) -> Self::Output {
+        apply_const(self, |&t| t / rhs)
     }
 }
 
-impl<'a, 'b, T> Mul<&'b Vector<T>> for &'a Vector<T>
-    where T: Clone + Copy + Mul<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+impl<'a, 'b, T, U, O> Add<&'b Vector<U>> for &'a Vector<T>
+    where T: Clone + Copy + Add<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn mul(self, rhs: &'b Vector<T>) -> Self::Output {
-        if self.dim() != rhs.dim() {
-            return Err(format!("incompatible sizes"))
-        }
-
-        let mut vec = Vec::new();
-
-        for (i, j) in self.value.iter().zip(rhs.value.iter()) {
-            vec.push(*i * *j)
-        }
-
-        Ok(Vector::from(vec))
+    fn add(self, rhs: &'b Vector<U>) -> Self::Output {
+        apply_ref(self, rhs, |(&t, &u)| t + u)
     }
 }
 
-impl<'a, 'b, T> Div<&'b Vector<T>> for &'a Vector<T>
-    where T: Clone + Copy + Div<T, Output = T> {
-    type Output = Result<Vector<T>, String>;
+impl<'a, 'b, T, U, O> Sub<&'b Vector<U>> for &'a Vector<T>
+    where T: Clone + Copy + Sub<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn div(self, rhs: &'b Vector<T>) -> Self::Output {
-        if self.dim() != rhs.dim() {
-            return Err(format!("incompatible sizes"))
-        }
-
-        let mut vec = Vec::new();
-
-        for (i, j) in self.value.iter().zip(rhs.value.iter()) {
-            vec.push(*i / *j)
-        }
-
-        Ok(Vector::from(vec))
+    fn sub(self, rhs: &'b Vector<U>) -> Self::Output {
+        apply_ref(self, rhs, |(&t, &u)| t - u)
     }
 }
 
-impl<'a, T> Mul<T> for &'a Vector<T>
-    where T: Clone + Copy + Mul<T, Output = T> {
-    type Output = Vector<T>;
+impl<'a, 'b, T, U, O> Mul<&'b Vector<U>> for &'a Vector<T>
+    where T: Clone + Copy + Mul<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn mul(self, rhs: T) -> Self::Output {
-        let mut vec = Vec::new();
-
-        for i in self.value.iter() {
-            vec.push(*i * rhs)
-        }
-
-        Vector::from(vec)
+    fn mul(self, rhs: &'b Vector<U>) -> Self::Output {
+        apply_ref(self, rhs, |(&t, &u)| t * u)
     }
 }
 
-impl<'a, T> Div<T> for &'a Vector<T>
-    where T: Clone + Copy + Div<T, Output = T> {
-    type Output = Vector<T>;
+impl<'a, 'b, T, U, O> Div<&'b Vector<U>> for &'a Vector<T>
+    where T: Clone + Copy + Div<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Result<Vector<O>, String>;
 
-    fn div(self, rhs: T) -> Self::Output {
-        let mut vec = Vec::new();
+    fn div(self, rhs: &'b Vector<U>) -> Self::Output {
+        apply_ref(self, rhs, |(&t, &u)| t / u)
+    }
+}
 
-        for i in self.value.iter() {
-            vec.push(*i / rhs)
-        }
+impl<'a, 'b, T, U, O> Mul<&'b U> for &'a Vector<T>
+    where T: Clone + Copy + Mul<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Vector<O>;
 
-        Vector::from(vec)
+    fn mul(self, rhs: &'b U) -> Self::Output {
+        apply_const_ref(self, |&t| t * *rhs)
+    }
+}
+
+impl<'a, 'b, T, U, O> Div<&'b U> for &'a Vector<T>
+    where T: Clone + Copy + Div<U, Output = O>,
+          U: Clone + Copy,
+          O: Clone + Copy {
+    type Output = Vector<O>;
+
+    fn div(self, rhs: &'b U) -> Self::Output {
+        apply_const_ref(self, |&t| t / *rhs)
     }
 }
