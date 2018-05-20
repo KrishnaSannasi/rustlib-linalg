@@ -86,11 +86,11 @@ where T: Clone + Copy {
     /// conversion functions between different vector types (if the type implements from)
     pub fn into<U>(&self) -> Vector<U>
         where U: Clone + Copy + From<T> {
-        self.convert(|&x| U::from(x.clone()))
+        self.map(|&x| U::from(x.clone()))
     }
 
-    /// conversion functions between different vector types using a provided function
-    pub fn convert<U, F>(&self, f: F) -> Vector<U>
+    /// maps the vector's component's according to the function provided
+    pub fn map<U, F>(&self, f: F) -> Vector<U>
         where U: Clone + Copy,
               F: Fn(&T) -> U {
         Vector::from(self.value.iter().map(f).collect::<Vec<U>>())

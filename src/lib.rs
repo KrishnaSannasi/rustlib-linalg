@@ -10,5 +10,8 @@ mod macros {
         [$($e: expr),*] => {
             Vector::from(vec![$($e),*])
         };
+        [$e: expr;$c: expr] => {
+            Vector::from(vec![$e;$c])
+        }
     }
 }
