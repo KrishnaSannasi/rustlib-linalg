@@ -1,12 +1,13 @@
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use rand::{Rng, Rand, thread_rng};
+use std::cmp::Eq;
 use num::traits::*;
 
 use super::Vector;
 
 // related functions
 impl<T> Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
     /// creates a vector of 0.0s with the dimension given
     pub fn new(dim: usize) -> Self
     where T: Zero {
@@ -29,6 +30,8 @@ impl<T> Vector<T>
         Self::from(vec).norm()
     }
 }
+
+impl<T> Eq for Vector<T> where T: Copy + Eq { }
 
 impl<T> Vector<T> 
     where T: Float {
@@ -53,7 +56,7 @@ impl<T> Vector<T>
 }
 
 impl<T> Vector<T> 
-where T: Clone + Copy + Add<Output = T> {
+where T: Copy + Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(&self, value: T) -> Self {
         let mut vec = Vec::new();
@@ -77,7 +80,7 @@ where T: Clone + Copy + Add<Output = T> {
 }
 
 impl<T> Vector<T> 
-where T: Clone + Copy {
+where T: Copy {
     /// get the dimension of the vector
     pub fn dim(&self) -> usize {
         self.value.len()
@@ -85,13 +88,13 @@ where T: Clone + Copy {
 
     /// conversion functions between different vector types (if the type implements from)
     pub fn into<U>(&self) -> Vector<U>
-        where U: Clone + Copy + From<T> {
+        where U: Copy + From<T> {
         self.map(|&x| U::from(x.clone()))
     }
 
     /// maps the vector's component's according to the function provided
     pub fn map<U, F>(&self, f: F) -> Vector<U>
-        where U: Clone + Copy,
+        where U: Copy,
               F: Fn(&T) -> U {
         Vector::from(self.value.iter().map(f).collect::<Vec<U>>())
     }
@@ -104,9 +107,9 @@ where T: Clone + Copy {
 
     /// takes the dot product of the two vectors
     pub fn dot<U, O>(&self, other: &Vector<U>) -> O 
-    where O: Clone + Copy + Zero,
-          U: Clone + Copy,
-          T: Clone + Copy + Mul<U, Output = O> {
+    where O: Copy + Zero,
+          U: Copy,
+          T: Copy + Mul<U, Output = O> {
         self.value.iter()
                   .zip(other.value.iter())
                   .fold(O::zero(), |sum, (&t, &u)| sum + t * u)
@@ -114,7 +117,7 @@ where T: Clone + Copy {
 }
 
 impl<T> Vector<T> 
-    where T: Clone + Copy + One + 
+    where T: Copy + One + 
              Add<Output = T> +
              Sub<Output = T> {
     /// linearly interpolates between two vectors
@@ -125,7 +128,7 @@ impl<T> Vector<T>
 
 // traits
 impl<'a, T> From<&'a [T]> for Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
     
     // get a vector from a slice
     fn from(value: &'a [T]) -> Self {
@@ -134,7 +137,7 @@ impl<'a, T> From<&'a [T]> for Vector<T>
 }
 
 impl<T> From<Vec<T>> for Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
     
     // get a vector from a vec
     fn from(value: Vec<T>) -> Self {
@@ -143,7 +146,7 @@ impl<T> From<Vec<T>> for Vector<T>
 }
 
 impl<T> Index<usize> for Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -152,10 +155,9 @@ impl<T> Index<usize> for Vector<T>
 }
 
 impl<T> IndexMut<usize> for Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
 
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
     }
-
 }

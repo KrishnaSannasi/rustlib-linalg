@@ -22,9 +22,9 @@ macro_rules! apply {
 }
 
 impl<T, U, O> Add<Vector<U>> for Vector<T>
-    where T: Clone + Copy + Add<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Add<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn add(self, rhs: Vector<U>) -> Self::Output {
@@ -33,9 +33,9 @@ impl<T, U, O> Add<Vector<U>> for Vector<T>
 }
 
 impl<T, U, O> Sub<Vector<U>> for Vector<T>
-    where T: Clone + Copy + Sub<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Sub<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn sub(self, rhs: Vector<U>) -> Self::Output {
@@ -44,9 +44,9 @@ impl<T, U, O> Sub<Vector<U>> for Vector<T>
 }
 
 impl<T, U, O> Mul<Vector<U>> for Vector<T>
-    where T: Clone + Copy + Mul<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn mul(self, rhs: Vector<U>) -> Self::Output {
@@ -55,9 +55,9 @@ impl<T, U, O> Mul<Vector<U>> for Vector<T>
 }
 
 impl<T, U, O> Div<Vector<U>> for Vector<T>
-    where T: Clone + Copy + Div<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn div(self, rhs: Vector<U>) -> Self::Output {
@@ -66,9 +66,9 @@ impl<T, U, O> Div<Vector<U>> for Vector<T>
 }
 
 impl<T, U, O> Mul<U> for Vector<T>
-    where T: Clone + Copy + Mul<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Vector<O>;
 
     fn mul(self, rhs: U) -> Self::Output {
@@ -77,9 +77,9 @@ impl<T, U, O> Mul<U> for Vector<T>
 }
 
 impl<T, U, O> Div<U> for Vector<T>
-    where T: Clone + Copy + Div<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Vector<O>;
 
     fn div(self, rhs: U) -> Self::Output {
@@ -88,9 +88,9 @@ impl<T, U, O> Div<U> for Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Add<&'b Vector<U>> for &'a Vector<T>
-    where T: Clone + Copy + Add<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Add<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn add(self, rhs: &'b Vector<U>) -> Self::Output {
@@ -99,9 +99,9 @@ impl<'a, 'b, T, U, O> Add<&'b Vector<U>> for &'a Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Sub<&'b Vector<U>> for &'a Vector<T>
-    where T: Clone + Copy + Sub<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Sub<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn sub(self, rhs: &'b Vector<U>) -> Self::Output {
@@ -110,9 +110,9 @@ impl<'a, 'b, T, U, O> Sub<&'b Vector<U>> for &'a Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Mul<&'b Vector<U>> for &'a Vector<T>
-    where T: Clone + Copy + Mul<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn mul(self, rhs: &'b Vector<U>) -> Self::Output {
@@ -121,9 +121,9 @@ impl<'a, 'b, T, U, O> Mul<&'b Vector<U>> for &'a Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Div<&'b Vector<U>> for &'a Vector<T>
-    where T: Clone + Copy + Div<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Result<Vector<O>, String>;
 
     fn div(self, rhs: &'b Vector<U>) -> Self::Output {
@@ -132,9 +132,9 @@ impl<'a, 'b, T, U, O> Div<&'b Vector<U>> for &'a Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Mul<&'b U> for &'a Vector<T>
-    where T: Clone + Copy + Mul<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Vector<O>;
 
     fn mul(self, rhs: &'b U) -> Self::Output {
@@ -143,9 +143,9 @@ impl<'a, 'b, T, U, O> Mul<&'b U> for &'a Vector<T>
 }
 
 impl<'a, 'b, T, U, O> Div<&'b U> for &'a Vector<T>
-    where T: Clone + Copy + Div<U, Output = O>,
-          U: Clone + Copy,
-          O: Clone + Copy {
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
     type Output = Vector<O>;
 
     fn div(self, rhs: &'b U) -> Self::Output {

@@ -6,7 +6,7 @@ mod tests;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Vector<T>
-    where T: Clone + Copy {
+    where T: Copy {
     value: Vec<T>
 }
 
