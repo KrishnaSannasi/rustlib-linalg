@@ -152,3 +152,47 @@ impl<'a, 'b, T, U, O> Div<&'b U> for &'a Vector<T>
         apply!(scl => self, |&i| i / *rhs)
     }
 }
+
+impl<'a, T, U, O> Add<Vector<U>> for &'a Vector<T>
+    where T: Copy + Add<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Result<Vector<O>, String>;
+
+    fn add(self, rhs: Vector<U>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i + j)
+    }
+}
+
+impl<'a, T, U, O> Sub<Vector<U>> for &'a Vector<T>
+    where T: Copy + Sub<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Result<Vector<O>, String>;
+
+    fn sub(self, rhs: Vector<U>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i - j)
+    }
+}
+
+impl<'a, T, U, O> Mul<Vector<U>> for &'a Vector<T>
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Result<Vector<O>, String>;
+
+    fn mul(self, rhs: Vector<U>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i * j)
+    }
+}
+
+impl<'a, T, U, O> Div<Vector<U>> for &'a Vector<T>
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Result<Vector<O>, String>;
+
+    fn div(self, rhs: Vector<U>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i / j)
+    }
+}

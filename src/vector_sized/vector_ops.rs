@@ -151,3 +151,47 @@ impl<'a, 'b, S: Unsigned, T, U, O> Div<&'b U> for &'a Vector<T, S>
         apply!(scl => self, |&i| i / *rhs)
     }
 }
+
+impl<'a, S: Unsigned, T, U, O> Add<Vector<U, S>> for &'a Vector<T, S>
+    where T: Copy + Add<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Vector<O, S>;
+
+    fn add(self, rhs: Vector<U, S>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i + j)
+    }
+}
+
+impl<'a, S: Unsigned, T, U, O> Sub<Vector<U, S>> for &'a Vector<T, S>
+    where T: Copy + Sub<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Vector<O, S>;
+
+    fn sub(self, rhs: Vector<U, S>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i - j)
+    }
+}
+
+impl<'a, S: Unsigned, T, U, O> Mul<Vector<U, S>> for &'a Vector<T, S>
+    where T: Copy + Mul<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Vector<O, S>;
+
+    fn mul(self, rhs: Vector<U, S>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i * j)
+    }
+}
+
+impl<'a, S: Unsigned, T, U, O> Div<Vector<U, S>> for &'a Vector<T, S>
+    where T: Copy + Div<U, Output = O>,
+          U: Copy,
+          O: Copy {
+    type Output = Vector<O, S>;
+
+    fn div(self, rhs: Vector<U, S>) -> Self::Output {
+        apply!(vec => self, rhs, |(&i, &j)| i / j)
+    }
+}
