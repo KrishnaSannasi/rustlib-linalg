@@ -2,6 +2,8 @@ extern crate rand;
 extern crate num;
 
 pub mod vector;
+#[cfg(feature = "compile-time-size")]
+pub mod vector_sized;
 
 #[macro_use]
 mod macros {

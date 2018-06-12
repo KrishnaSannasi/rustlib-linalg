@@ -3,6 +3,11 @@ name = "linear-algebra"
 version = "0.6.1"
 authors = ["Ozaren <krishna.sd.2012@gmail.com>"]
 
+[features]
+compile-time-size = ["typenum"]
+
 [dependencies]
 rand = "0.4.2"
 num = "*"
+
+typenum = { version = '*', optional = true }
