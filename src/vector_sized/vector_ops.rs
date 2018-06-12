@@ -1,19 +1,22 @@
 use std::ops::{Add, Sub, Mul, Div};
+use std::convert::TryFrom;
 
 use super::Vector;
 use super::typenum::Unsigned;
 
 macro_rules! apply {
     (vec => $t: expr, $u: expr, $e: expr) => {
-        Vector::from($t.value.iter()
+        Vector::try_from($t.value.iter()
                              .zip($u.value.iter())
                              .map($e)
                              .collect::<Vec<O>>())
+                             .unwrap()
     };
     (scl => $t: expr, $e: expr) => {
-        Vector::from($t.value.iter()
+        Vector::try_from($t.value.iter()
                        .map($e)
                        .collect::<Vec<O>>())
+                       .unwrap()
     };
 }
 

@@ -2,8 +2,9 @@ use super::Vector;
 
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
-use rand::{Rng, Rand, thread_rng};
 use std::cmp::Eq;
+use std::convert::TryFrom;
+use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
 use super::typenum::Unsigned;
@@ -34,7 +35,7 @@ impl <T: Copy, S: Unsigned> Vector<T, S> {
     /// maps the vector's component's according to the function provided
     pub fn map<U: Copy, F>(&self, f: F) -> Vector<U, S>
         where F: Fn(&T) -> U {
-        Vector::from(self.value.iter().map(f).collect::<Vec<U>>())
+        Vector::try_from(self.value.iter().map(f).collect::<Vec<U>>()).unwrap()
     }
 
     /// the square of the magnitude
@@ -65,7 +66,7 @@ impl <T: Copy, S: Unsigned> Vector<T, S> {
             vec.push(v * two - one);
         }
 
-        Self::from(vec).norm()
+        Self::try_from(vec).unwrap().norm()
     }
 }
 
@@ -101,7 +102,7 @@ where T: Add<Output = T> {
             vec.push(*i + value);
         }
 
-        Self::from(vec)
+        Self::try_from(vec).unwrap()
     }
 
     /// sums up the elements of the vector
@@ -125,22 +126,25 @@ impl<T: Copy, S: Unsigned> Vector<T, S>
 }
 
 // traits
-impl<'a, T: Copy, S: Unsigned> From<&'a [T]> for Vector<T, S> {
-    
+impl<'a, T: Copy, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
+    type Error = String;
+
     // get a vector from a slice
-    fn from(value: &'a [T]) -> Self {
-        Self::from(Vec::from(value))
+    fn try_from(value: &'a [T]) -> Result<Self, Self::Error> {
+        Self::try_from(Vec::from(value))
     }
 }
 
-impl<T: Copy, S: Unsigned> From<Vec<T>> for Vector<T, S> {
-    
+impl<T: Copy, S: Unsigned> TryFrom<Vec<T>> for Vector<T, S> {
+    type Error = String;
+
     // get a vector from a vec
-    fn from(value: Vec<T>) -> Self {
-        if value.len() != S::to_usize() {
-            panic!(format!("Invlaid vector given, dimensions do not match"))
+    fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
+        if value.len() == S::to_usize() {
+            Ok(Self { value, phantom: PhantomData })
+        } else {
+            Err(format!("the vector's size {}, does not match the vector size {}", value.len(), S::to_usize()))
         }
-        Self { value, phantom: PhantomData }
     }
 }
 
