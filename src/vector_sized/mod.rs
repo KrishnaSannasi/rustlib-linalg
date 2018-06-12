@@ -9,8 +9,7 @@ pub mod vector_ops;
 #[cfg(test)]
 mod tests;
 
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Vector<T, S>
     where T: Copy,
           S: Unsigned {

@@ -3,6 +3,8 @@ use super::Vector;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use std::cmp::Eq;
+use std::fmt;
+
 use std::convert::TryFrom;
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
@@ -160,5 +162,12 @@ impl<T: Copy, S: Unsigned> IndexMut<usize> for Vector<T, S> {
 
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
+    }
+}
+
+impl<T: Copy + fmt::Debug, S: Unsigned> fmt::Debug for Vector<T, S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ret = format!("{:?}", self.value);
+        write!(f, "<{}>", &ret[1..ret.len()-1])
     }
 }

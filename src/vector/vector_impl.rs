@@ -1,6 +1,8 @@
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
-use rand::{Rng, Rand, thread_rng};
 use std::cmp::Eq;
+use std::fmt;
+
+use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
 use super::Vector;
@@ -159,5 +161,12 @@ impl<T> IndexMut<usize> for Vector<T>
 
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
+    }
+}
+
+impl<T: Copy + fmt::Debug> fmt::Debug for Vector<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ret = format!("{:?}", self.value);
+        write!(f, "<{}>", &ret[1..ret.len()-1])
     }
 }
