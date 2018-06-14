@@ -87,8 +87,6 @@ macro_rules! impl_spec {
     };
 }
 
-pub mod vector_ops_f32;
-
 impl_spec!(block op ty => f32);
 impl_spec!(block op ty => f64);
 impl_spec!(block op ty => u8);
