@@ -1,4 +1,4 @@
-#![feature(try_from)]
+#![feature(try_from, specialization)]
 
 extern crate rand;
 extern crate num;

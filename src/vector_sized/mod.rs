@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 
 pub mod vector_impl;
 pub mod vector_ops;
+pub mod vector_ops_spec;
 
 #[cfg(test)]
 mod tests;
