@@ -10,9 +10,12 @@ pub mod vector_ops_spec;
 #[cfg(test)]
 mod tests;
 
+/// Marker trait to for anything that can be put in a vector
+pub trait Vectorizable: Copy {}
+
 #[derive(Clone, PartialEq)]
 pub struct Vector<T, S>
-    where T: Copy,
+    where T: Vectorizable,
           S: Unsigned {
     value: Vec<T>,
     phantom: PhantomData<S>
@@ -36,3 +39,29 @@ pub type Vector3I = Vector<i32, U3>;
 pub type Vector3U = Vector<u32, U3>;
 pub type Vector3S = Vector<usize, U3>;
 
+macro_rules! vecable {
+    ($Ty:ty) => {
+        impl Vectorizable for $Ty {}
+    };
+}
+
+impl<'a, T: Vectorizable> Vectorizable for &'a T {}
+
+vecable!(u8);
+vecable!(u16);
+vecable!(u32);
+vecable!(u64);
+vecable!(u128);
+vecable!(usize);
+vecable!(i8);
+vecable!(i16);
+vecable!(i32);
+vecable!(i64);
+vecable!(i128);
+vecable!(isize);
+vecable!(f32);
+vecable!(f64);
+
+use num::complex::Complex;
+
+impl<T: Copy> Vectorizable for Complex<T> {  }

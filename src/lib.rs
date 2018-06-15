@@ -19,3 +19,6 @@ mod macros {
         }
     }
 }
+
+/// Marker trait for vectors to allow specialization
+trait VectorType {}

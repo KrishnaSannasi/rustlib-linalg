@@ -1,4 +1,4 @@
-use super::Vector;
+use super::{Vector, Vectorizable};
 
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
@@ -11,9 +11,9 @@ use num::traits::*;
 
 use super::typenum::Unsigned;
 
-impl<T: Copy, S: Unsigned + PartialEq> Eq for Vector<T, S> where T: Eq { }
+impl<T: Vectorizable, S: Unsigned + PartialEq> Eq for Vector<T, S> where T: Eq { }
 
-impl <T: Copy, S: Unsigned> Vector<T, S> {
+impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
     /// creates a vector of 0.0s
     pub fn new() -> Self
     where T: Zero {
@@ -30,12 +30,12 @@ impl <T: Copy, S: Unsigned> Vector<T, S> {
 
     /// conversion functions between different vector types (if the type implements from)
     pub fn into<U>(&self) -> Vector<U, S>
-        where U: Copy + From<T> {
+        where U: Vectorizable + From<T> {
         self.map(|&x| U::from(x.clone()))
     }
 
     /// maps the vector's component's according to the function provided
-    pub fn map<U: Copy, F>(&self, f: F) -> Vector<U, S>
+    pub fn map<U: Vectorizable, F>(&self, f: F) -> Vector<U, S>
         where F: Fn(&T) -> U {
         Vector::try_from(self.value.iter().map(f).collect::<Vec<U>>()).unwrap()
     }
@@ -47,9 +47,9 @@ impl <T: Copy, S: Unsigned> Vector<T, S> {
     }
 
     /// takes the dot product of the two vectors
-    pub fn dot<U: Copy, O>(&self, other: &Vector<U, S>) -> O 
-    where O: Copy + Zero,
-          T: Copy + Mul<U, Output = O> {
+    pub fn dot<U: Vectorizable, O>(&self, other: &Vector<U, S>) -> O 
+    where O: Vectorizable + Zero,
+          T: Vectorizable + Mul<U, Output = O> {
         self.value.iter()
                   .zip(other.value.iter())
                   .fold(O::zero(), |sum, (&t, &u)| sum + t * u)
@@ -72,7 +72,7 @@ impl <T: Copy, S: Unsigned> Vector<T, S> {
     }
 }
 
-impl<T: Copy, S: Unsigned> Vector<T, S> 
+impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
     where T: Float {
     /// the magnitude
     pub fn mag(&self) -> T {
@@ -82,7 +82,7 @@ impl<T: Copy, S: Unsigned> Vector<T, S>
     /// returns a unit vector with the same 
     /// direction and dimension as the parent vector
     pub fn norm(&self) -> Self {
-        self / &self.mag()
+        self / self.mag()
     }
     
     /// gives the angle between two vectors
@@ -94,7 +94,7 @@ impl<T: Copy, S: Unsigned> Vector<T, S>
     }
 }
 
-impl<T: Copy, S: Unsigned> Vector<T, S> 
+impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(&self, value: T) -> Self {
@@ -118,17 +118,16 @@ where T: Add<Output = T> {
     }
 }
 
-impl<T: Copy, S: Unsigned> Vector<T, S> 
-    where T: One + Add<Output = T> +
-             Sub<Output = T> {
+impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
+    where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
     pub fn lerp(&self, other: &Vector<T, S>, w: T) -> Self {
-        self * &(T::one() - w) + other * &w
+        self * (T::one() - w) + other * w
     }
 }
 
 // traits
-impl<'a, T: Copy, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
+impl<'a, T: Vectorizable, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
     type Error = String;
 
     // get a vector from a slice
@@ -137,7 +136,7 @@ impl<'a, T: Copy, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
     }
 }
 
-impl<T: Copy, S: Unsigned> TryFrom<Vec<T>> for Vector<T, S> {
+impl<T: Vectorizable, S: Unsigned> TryFrom<Vec<T>> for Vector<T, S> {
     type Error = String;
 
     // get a vector from a vec
@@ -150,7 +149,7 @@ impl<T: Copy, S: Unsigned> TryFrom<Vec<T>> for Vector<T, S> {
     }
 }
 
-impl<T: Copy, S: Unsigned> Index<usize> for Vector<T, S> {
+impl<T: Vectorizable, S: Unsigned> Index<usize> for Vector<T, S> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -158,14 +157,14 @@ impl<T: Copy, S: Unsigned> Index<usize> for Vector<T, S> {
     }
 }
 
-impl<T: Copy, S: Unsigned> IndexMut<usize> for Vector<T, S> {
+impl<T: Vectorizable, S: Unsigned> IndexMut<usize> for Vector<T, S> {
 
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
     }
 }
 
-impl<T: Copy + fmt::Debug, S: Unsigned> fmt::Debug for Vector<T, S> {
+impl<T: Vectorizable + Sized + fmt::Debug, S: Unsigned> fmt::Debug for Vector<T, S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let ret = format!("{:?}", self.value);
         write!(f, "<{}>", &ret[1..ret.len()-1])

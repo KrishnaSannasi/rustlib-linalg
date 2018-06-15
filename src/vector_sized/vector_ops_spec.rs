@@ -33,8 +33,6 @@ macro_rules! impl_spec {
     };
     (block own borrow => $Op:ident, $fun:ident, $opass:tt, $Ty:ident, $S:ident) => {
         impl<'a> $Op<&'a Vector<$Ty, $S>> for Vector<$Ty, $S> {
-            type Output = Vector<$Ty, $S>;
-            
             fn $fun(mut self, other: &'a Vector<$Ty, $S>) -> Self::Output {
                 {
                     impl_spec!(block own => $opass, $S, self, other)
