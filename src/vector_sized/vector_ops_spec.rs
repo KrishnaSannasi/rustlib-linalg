@@ -1,6 +1,6 @@
 use super::Vector;
-
 use std::ops::*;
+use num::complex::Complex;
 use super::typenum::*;
 
 macro_rules! impl_spec {
@@ -22,83 +22,82 @@ macro_rules! impl_spec {
             output
         }
     };
-    (block own own => $Op:ident, $fun:ident, $opass:tt, $Ty:ident, $S:ident) => {
-        impl $Op<Vector<$Ty, $S>> for Vector<$Ty, $S> {
-            fn $fun(mut self, other: Vector<$Ty, $S>) -> Self::Output {
+    (block own own => $Op:ident, $fun:ident, $opass:tt, $Ty:ident) => {
+        impl<S: Unsigned> $Op<Vector<$Ty, S>> for Vector<$Ty, S> {
+            fn $fun(mut self, other: Vector<$Ty, S>) -> Self::Output {
                 {
-                    impl_spec!(block own => $opass, $S, self, other)
+                    impl_spec!(block own => $opass, S, self, other)
                 }
             }
         }
     };
-    (block own borrow => $Op:ident, $fun:ident, $opass:tt, $Ty:ident, $S:ident) => {
-        impl<'a> $Op<&'a Vector<$Ty, $S>> for Vector<$Ty, $S> {
-            fn $fun(mut self, other: &'a Vector<$Ty, $S>) -> Self::Output {
+    (block own borrow => $Op:ident, $fun:ident, $opass:tt, $Ty:ident) => {
+        impl<'a, S: Unsigned> $Op<&'a Vector<$Ty, S>> for Vector<$Ty, S> {
+            fn $fun(mut self, other: &'a Vector<$Ty, S>) -> Self::Output {
                 {
-                    impl_spec!(block own => $opass, $S, self, other)
+                    impl_spec!(block own => $opass, S, self, other)
                 }
             }
         }
     };
-    (block borrow own => $Op:ident, $fun:ident, $op:tt, $Ty:ident, $S:ident) => {
-        impl<'b> $Op<Vector<$Ty, $S>> for &'b Vector<$Ty, $S> {
-            fn $fun(self, other: Vector<$Ty, $S>) -> Self::Output {
+    (block borrow own => $Op:ident, $fun:ident, $op:tt, $Ty:ident) => {
+        impl<'b, S: Unsigned> $Op<Vector<$Ty, S>> for &'b Vector<$Ty, S> {
+            fn $fun(self, other: Vector<$Ty, S>) -> Self::Output {
                 {
-                    impl_spec!(block borrow => $op, $S, self, other)
+                    impl_spec!(block borrow => $op, S, self, other)
                 }
             }
         }
     };
-    (block borrow borrow => $Op:ident, $fun:ident, $op:tt, $Ty:ident, $S:ident) => {
-        impl<'a, 'b> $Op<&'a Vector<$Ty, $S>> for &'b Vector<$Ty, $S> {
-            fn $fun(self, other: &'a Vector<$Ty, $S>) -> Self::Output {
+    (block borrow borrow => $Op:ident, $fun:ident, $op:tt, $Ty:ident) => {
+        impl<'a, 'b, S: Unsigned> $Op<&'a Vector<$Ty, S>> for &'b Vector<$Ty, S> {
+            fn $fun(self, other: &'a Vector<$Ty, S>) -> Self::Output {
                 {
-                    impl_spec!(block borrow => $op, $S, self, other)
+                    impl_spec!(block borrow => $op, S, self, other)
                 }
             }
         }
     };
-    (block all => $Op:ident, $fun:ident, $opass:tt, $op:tt, $Ty:ident, $S:ident) => {
-        impl_spec!(block own own => $Op, $fun, $opass, $Ty, $S);
-        impl_spec!(block own borrow => $Op, $fun, $opass, $Ty, $S);
-        impl_spec!(block borrow own => $Op, $fun, $op, $Ty, $S);
-        impl_spec!(block borrow borrow => $Op, $fun, $op, $Ty, $S);
+    (block all => $Op:ident, $fun:ident, $opass:tt, $op:tt, $Ty:ident) => {
+        impl_spec!(block own own => $Op, $fun, $opass, $Ty);
+        impl_spec!(block own borrow => $Op, $fun, $opass, $Ty);
+        impl_spec!(block borrow own => $Op, $fun, $op, $Ty);
+        impl_spec!(block borrow borrow => $Op, $fun, $op, $Ty);
     };
-    (block op => $Ty:ident, $S:ident) => {
-        impl_spec!(block all => Add, add, +=, +, $Ty, $S);
-        impl_spec!(block all => Sub, sub, -=, -, $Ty, $S);
-        impl_spec!(block all => Mul, mul, *=, *, $Ty, $S);
-        impl_spec!(block all => Div, div, /=, /, $Ty, $S);
+    (block ty op => $Ty:ident) => {
+        impl_spec!(block all => Add, add, +=, +, $Ty);
+        impl_spec!(block all => Sub, sub, -=, -, $Ty);
+        impl_spec!(block all => Mul, mul, *=, *, $Ty);
+        impl_spec!(block all => Div, div, /=, /, $Ty);
     };
-    (block op ty => $Ty:ident) => {
-        impl_spec!(block op => $Ty, U0);
-        impl_spec!(block op => $Ty, U1);
-        impl_spec!(block op => $Ty, U2);
-        impl_spec!(block op => $Ty, U3);
-        impl_spec!(block op => $Ty, U4);
-        impl_spec!(block op => $Ty, U5);
-        impl_spec!(block op => $Ty, U6);
-        impl_spec!(block op => $Ty, U7);
-        impl_spec!(block op => $Ty, U8);
-        impl_spec!(block op => $Ty, U9);
-        impl_spec!(block op => $Ty, U10);
+    (block ty => $Ty:ident) => {
+        impl_spec!(block ty op => $Ty);
+        pub mod $Ty {
+            use super::Vector;
+            use std::ops::*;
+            use num::complex::Complex;
+            use vector_sized::typenum::*;
+
+            type Cmplx = Complex<$Ty>;
+            impl_spec!(block ty op => Cmplx);
+        }
     };
 }
 
-impl_spec!(block op ty => f32);
-impl_spec!(block op ty => f64);
-impl_spec!(block op ty => u8);
-impl_spec!(block op ty => u16);
-impl_spec!(block op ty => u32);
-impl_spec!(block op ty => u64);
-impl_spec!(block op ty => u128);
-impl_spec!(block op ty => usize);
-impl_spec!(block op ty => i8);
-impl_spec!(block op ty => i16);
-impl_spec!(block op ty => i32);
-impl_spec!(block op ty => i64);
-impl_spec!(block op ty => i128);
-impl_spec!(block op ty => isize);
+impl_spec!(block ty => f32);
+impl_spec!(block ty => f64);
+impl_spec!(block ty => u8);
+impl_spec!(block ty => u16);
+impl_spec!(block ty => u32);
+impl_spec!(block ty => u64);
+impl_spec!(block ty => u128);
+impl_spec!(block ty => usize);
+impl_spec!(block ty => i8);
+impl_spec!(block ty => i16);
+impl_spec!(block ty => i32);
+impl_spec!(block ty => i64);
+impl_spec!(block ty => i128);
+impl_spec!(block ty => isize);
 
 #[test]
 fn t1() {

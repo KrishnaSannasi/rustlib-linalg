@@ -22,14 +22,14 @@ macro_rules! impl_op {
                                        .unwrap()
         }
     };
-    (build ass => $func:ident, $op:tt, $RHS:ty) => {
+    (build assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
             for i in 0..S::to_usize() {
                 self.value[i] $op rhs;
             }
         }
     };
-    (build bin ass => $func:ident, $op:tt, $RHS:ty) => {
+    (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
             for i in 0..S::to_usize() {
                 self.value[i] $op rhs.value[i];
@@ -90,32 +90,32 @@ macro_rules! impl_op {
             impl_op!(build bin => $func, $op, &'b Vector<U, S>);
         }
     };
-    (ass, own, own => $Op:ident, $func:ident, $op:tt) => {
+    (assign, own, own => $Op:ident, $func:ident, $op:tt) => {
         impl<S, T, U> $Op<Vector<U, S>> for Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin ass => $func, $op, Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, Vector<U, S>);
         }
     };
-    (ass, own, borrow => $Op:ident, $func:ident, $op:tt) => {
+    (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'b, S, T, U> $Op<&'b Vector<U, S>> for Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin ass => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, &'b Vector<U, S>);
         }
     };
-    (ass, borrow, own => $Op:ident, $func:ident, $op:tt) => {
+    (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, S, T, U> $Op<Vector<U, S>> for &'a mut Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin ass => $func, $op, Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, Vector<U, S>);
         }
     };
-    (ass, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
+    (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, 'b, S, T, U> $Op<&'b Vector<U, S>> for &'a mut Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin ass => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, &'b Vector<U, S>);
         }
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt) => {
@@ -127,17 +127,17 @@ macro_rules! impl_op {
         impl_op!(op => Mul, mul, * => $self_type, $other_type);
         impl_op!(op => Div, div, / => $self_type, $other_type);
     };
-    (op ass all => $self_type:tt, $other_type:tt) => {
-        impl_op!(op ass => AddAssign, add_assign, += => $self_type, $other_type);
-        impl_op!(op ass => SubAssign, sub_assign, -= => $self_type, $other_type);
-        impl_op!(op ass => MulAssign, mul_assign, *= => $self_type, $other_type);
-        impl_op!(op ass => DivAssign, div_assign, /= => $self_type, $other_type);
+    (op assign all => $self_type:tt, $other_type:tt) => {
+        impl_op!(op assign => AddAssign, add_assign, += => $self_type, $other_type);
+        impl_op!(op assign => SubAssign, sub_assign, -= => $self_type, $other_type);
+        impl_op!(op assign => MulAssign, mul_assign, *= => $self_type, $other_type);
+        impl_op!(op assign => DivAssign, div_assign, /= => $self_type, $other_type);
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt, $other_type:tt) => {
         impl_op!($self_type, $other_type => $Op, $func, $op);
     };
-    (op ass => $Op:ident, $func:ident, $op:tt => $self_type:tt, $other_type:tt) => {
-        impl_op!(ass, $self_type, $other_type => $Op, $func, $op);
+    (op assign => $Op:ident, $func:ident, $op:tt => $self_type:tt, $other_type:tt) => {
+        impl_op!(assign, $self_type, $other_type => $Op, $func, $op);
     };
 }
 
@@ -146,10 +146,10 @@ impl_op!(op all => own, borrow);
 impl_op!(op all => borrow, own);
 impl_op!(op all => borrow, borrow);
 
-impl_op!(op ass all => own, own);
-impl_op!(op ass all => own, borrow);
-impl_op!(op ass all => borrow, own);
-impl_op!(op ass all => borrow, borrow);
+impl_op!(op assign all => own, own);
+impl_op!(op assign all => own, borrow);
+impl_op!(op assign all => borrow, own);
+impl_op!(op assign all => borrow, borrow);
 
 impl_op!(op => Mul, mul, * => own);
 impl_op!(op => Mul, mul, * => borrow);
