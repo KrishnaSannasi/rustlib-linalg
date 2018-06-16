@@ -70,34 +70,27 @@ macro_rules! impl_spec {
         impl_spec!(block all => Mul, mul, *=, *, $Ty);
         impl_spec!(block all => Div, div, /=, /, $Ty);
     };
-    (block ty => $Ty:ident) => {
+    (block ty => $Ty:ident, $CTy:ident) => {
+        pub type $CTy = Complex<$Ty>;
+        impl_spec!(block ty op => $CTy);
         impl_spec!(block ty op => $Ty);
-        pub mod $Ty {
-            use super::Vector;
-            use std::ops::*;
-            use num::complex::Complex;
-            use vector_sized::typenum::*;
-
-            type Cmplx = Complex<$Ty>;
-            impl_spec!(block ty op => Cmplx);
-        }
     };
 }
 
-impl_spec!(block ty => f32);
-impl_spec!(block ty => f64);
-impl_spec!(block ty => u8);
-impl_spec!(block ty => u16);
-impl_spec!(block ty => u32);
-impl_spec!(block ty => u64);
-impl_spec!(block ty => u128);
-impl_spec!(block ty => usize);
-impl_spec!(block ty => i8);
-impl_spec!(block ty => i16);
-impl_spec!(block ty => i32);
-impl_spec!(block ty => i64);
-impl_spec!(block ty => i128);
-impl_spec!(block ty => isize);
+impl_spec!(block ty => f32, ComplexF32);
+impl_spec!(block ty => f64, ComplexF64);
+impl_spec!(block ty => u8, ComplexU8);
+impl_spec!(block ty => u16, ComplexU16);
+impl_spec!(block ty => u32, ComplexU32);
+impl_spec!(block ty => u64, ComplexU64);
+impl_spec!(block ty => u128, ComplexU128);
+impl_spec!(block ty => usize, ComplexUsize);
+impl_spec!(block ty => i8, ComplexI8);
+impl_spec!(block ty => i16, ComplexI16);
+impl_spec!(block ty => i32, ComplexI32);
+impl_spec!(block ty => i64, ComplexI64);
+impl_spec!(block ty => i128, ComplexI128);
+impl_spec!(block ty => isize, ComplexIsize);
 
 #[test]
 fn t1() {
