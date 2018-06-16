@@ -11,6 +11,22 @@ use num::traits::*;
 
 use super::typenum::Unsigned;
 
+#[macro_export]
+macro_rules! vector {
+    [$vec:expr] => {
+        {
+            use std::convert::TryFrom;
+            Vector::try_from($vec).unwrap()
+        }
+    };
+    [$($e: expr),*] => {
+        vector![vec![$($e),*]]
+    };
+    [$e: expr;$c: expr] => {
+        vector![vec![$e;$c]]
+    }
+}
+
 impl<T: Vectorizable, S: Unsigned + PartialEq> Eq for Vector<T, S> where T: Eq { }
 
 impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
