@@ -10,6 +10,7 @@ use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
 use super::typenum::Unsigned;
+use super::typenum::marker_traits::NonZero;
 
 #[macro_export]
 macro_rules! vector {
@@ -41,7 +42,7 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
     
     /// get the dimension of the vector
     pub fn dim(&self) -> usize {
-        self.value.len()
+        S::to_usize()
     }
 
     /// conversion functions between different vector types (if the type implements from)
@@ -58,22 +59,26 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
 
     /// the square of the magnitude
     pub fn magsq(&self) -> T
-        where T: Zero + Mul<Output = T> {
+        where T: Zero + Mul<Output = T>,
+              S: NonZero {
         self.dot(self)
     }
 
     /// takes the dot product of the two vectors
-    pub fn dot<U: Vectorizable, O>(&self, other: &Vector<U, S>) -> O 
+    pub fn dot<U: Vectorizable, O>(&self, other: &Vector<U, S>) -> O
     where O: Vectorizable + Zero,
-          T: Vectorizable + Mul<U, Output = O> {
-        self.value.iter()
-                  .zip(other.value.iter())
-                  .fold(O::zero(), |sum, (&t, &u)| sum + t * u)
+          T: Vectorizable + Mul<U, Output = O>,
+          S: NonZero {
+        let mut sum = O::zero();
+        for i in 0..S::to_usize() {
+            sum = sum + self[i] * other[i];
+        }
+        sum
     }
 
     /// creates a random unit vector
     pub fn rand() -> Self
-    where T: Rand + Float {
+    where T: Rand + Float, S: NonZero {
         let mut vec = Vec::new();
         let mut rng = thread_rng();
         let one = T::one();
@@ -89,7 +94,7 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
 }
 
 impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
-    where T: Float {
+    where T: Float, S: NonZero {
     /// the magnitude
     pub fn mag(&self) -> T {
         self.magsq().sqrt()

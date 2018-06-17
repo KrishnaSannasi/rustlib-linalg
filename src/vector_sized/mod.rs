@@ -4,6 +4,7 @@ use self::typenum::{Unsigned, U2, U3};
 use std::marker::PhantomData;
 #[macro_use]
 pub mod vector_impl;
+pub mod vector_impl_spec;
 pub mod vector_ops;
 pub mod vector_ops_spec;
 
