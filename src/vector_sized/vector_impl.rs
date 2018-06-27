@@ -201,6 +201,8 @@ impl<T: Vectorizable + Sized + Serialize, S: Unsigned> Serialize for Vector<T, S
     }
 }
 
+use serde::de::Error;
+
 impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'de> for Vector<T, S> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: Deserializer<'de> {
@@ -209,7 +211,7 @@ impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'
         if vec.len() == S::to_usize() {
             Ok(Self { value: vec, phantom: PhantomData })
         } else {
-            panic!(format!("invalid length: expected {}, found {}", S::to_usize(), vec.len()));
+            Err(Error::invalid_length(vec.len(), &&*format!("expected {}", S::to_usize())))
         }
     }
 }
