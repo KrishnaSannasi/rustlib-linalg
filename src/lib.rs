@@ -2,6 +2,7 @@
 
 extern crate rand;
 extern crate num;
+extern crate serde;
 
 pub mod vector;
 #[cfg(feature = "sized")]

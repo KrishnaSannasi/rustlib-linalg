@@ -9,6 +9,8 @@ use std::convert::TryFrom;
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
+
 use super::typenum::Unsigned;
 use super::typenum::marker_traits::NonZero;
 
@@ -189,5 +191,25 @@ impl<T: Vectorizable + Sized + fmt::Debug, S: Unsigned> fmt::Debug for Vector<T,
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let ret = format!("{:?}", self.value);
         write!(f, "<{}>", &ret[1..ret.len()-1])
+    }
+}
+
+impl<T: Vectorizable + Sized + Serialize, S: Unsigned> Serialize for Vector<T, S> {
+    fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
+    where Ser: Serializer {
+        self.value.serialize(serializer)
+    }
+}
+
+impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'de> for Vector<T, S> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: Deserializer<'de> {
+        let vec: Vec<T> = <Vec<T> as Deserialize<'de>>::deserialize(deserializer)?;
+
+        if vec.len() == S::to_usize() {
+            Ok(Self { value: vec, phantom: PhantomData })
+        } else {
+            panic!(format!("invalid length: expected {}, found {}", S::to_usize(), vec.len()));
+        }
     }
 }
