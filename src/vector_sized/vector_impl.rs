@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::{Serialize, Deserialize, Serializer, Deserializer, de::Error};
 
 use super::typenum::Unsigned;
 use super::typenum::marker_traits::NonZero;
@@ -200,8 +200,6 @@ impl<T: Vectorizable + Sized + Serialize, S: Unsigned> Serialize for Vector<T, S
         self.value.serialize(serializer)
     }
 }
-
-use serde::de::Error;
 
 impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'de> for Vector<T, S> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
