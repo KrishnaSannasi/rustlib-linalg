@@ -1,5 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign};
-use std::convert::TryFrom;
+use std::ops::*;
 
 use super::{Vector, Vectorizable};
 use super::typenum::Unsigned;
@@ -7,19 +6,17 @@ use super::typenum::Unsigned;
 macro_rules! impl_op {
     (build => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(self, rhs: $RHS) -> Self::Output {
-            Vector::try_from(self.value.iter()
-                                       .map(|&i| i $op rhs)
-                                       .collect::<Vec<O>>())
-                                       .unwrap()
+            Vector::make(self.value.iter()
+                                   .map(|&i| i $op rhs)
+                                   .collect::<Vec<O>>())
         }
     };
     (build bin => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(self, rhs: $RHS) -> Self::Output {
-            Vector::try_from(self.value.iter()
-                                       .zip(rhs.value.iter())
-                                       .map(|(&i, &j)| i $op j)
-                                       .collect::<Vec<O>>())
-                                       .unwrap()
+            Vector::make(self.value.iter()
+                                   .zip(rhs.value.iter())
+                                   .map(|(&i, &j)| i $op j)
+                                   .collect::<Vec<O>>())
         }
     };
     (build assign => $func:ident, $op:tt, $RHS:ty) => {
@@ -126,12 +123,26 @@ macro_rules! impl_op {
         impl_op!(op => Sub, sub, - => $self_type, $other_type);
         impl_op!(op => Mul, mul, * => $self_type, $other_type);
         impl_op!(op => Div, div, / => $self_type, $other_type);
+        impl_op!(op => Rem, rem, % => $self_type, $other_type);
+        
+        impl_op!(op => BitAnd, bitand, & => $self_type, $other_type);
+        impl_op!(op => BitOr, bitor, | => $self_type, $other_type);
+        impl_op!(op => BitXor, bitxor, ^ => $self_type, $other_type);
+        impl_op!(op => Shl, shl, << => $self_type, $other_type);
+        impl_op!(op => Shr, shr, >> => $self_type, $other_type);
     };
     (op assign all => $self_type:tt, $other_type:tt) => {
         impl_op!(op assign => AddAssign, add_assign, += => $self_type, $other_type);
         impl_op!(op assign => SubAssign, sub_assign, -= => $self_type, $other_type);
         impl_op!(op assign => MulAssign, mul_assign, *= => $self_type, $other_type);
         impl_op!(op assign => DivAssign, div_assign, /= => $self_type, $other_type);
+        impl_op!(op assign => RemAssign, rem_assign, %= => $self_type, $other_type);
+        
+        impl_op!(op assign => BitAndAssign, bitand_assign, &= => $self_type, $other_type);
+        impl_op!(op assign => BitOrAssign, bitor_assign, |= => $self_type, $other_type);
+        impl_op!(op assign => BitXorAssign, bitxor_assign, ^= => $self_type, $other_type);
+        impl_op!(op assign => ShlAssign, shl_assign, <<= => $self_type, $other_type);
+        impl_op!(op assign => ShrAssign, shr_assign, >>= => $self_type, $other_type);
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt, $other_type:tt) => {
         impl_op!($self_type, $other_type => $Op, $func, $op);
@@ -156,3 +167,31 @@ impl_op!(op => Mul, mul, * => borrow);
 
 impl_op!(op => Div, div, / => own);
 impl_op!(op => Div, div, / => borrow);
+
+impl<T: Vectorizable, S: Unsigned, O: Vectorizable> Neg for Vector<T, S>
+where T: Neg<Output = O> {
+    type Output = Vector<O, S>;
+    default fn neg(self) -> Self::Output { -&self }
+}
+
+impl<'a, T: Vectorizable, S: Unsigned, O: Vectorizable> Neg for &'a Vector<T, S>
+where T: Neg<Output = O> {
+    type Output = Vector<O, S>;
+    fn neg(self) -> Self::Output {
+        self.map(|&x| -x)
+    }
+}
+
+impl<T: Vectorizable, S: Unsigned, O: Vectorizable> Not for Vector<T, S>
+where T: Not<Output = O> {
+    type Output = Vector<O, S>;
+    default fn not(self) -> Self::Output { !&self }
+}
+
+impl<'a, T: Vectorizable, S: Unsigned, O: Vectorizable> Not for &'a Vector<T, S>
+where T: Not<Output = O> {
+    type Output = Vector<O, S>;
+    fn not(self) -> Self::Output {
+        self.map(|&x| !x)
+    }
+}
