@@ -22,6 +22,13 @@ pub struct Vector<T, S>
     phantom: PhantomData<S>
 }
 
+impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
+    // for internal use where the size is gaurenteed to be correct
+    fn make(value: Vec<T>) -> Self {
+        Self { value, phantom: PhantomData }
+    }
+}
+
 pub type VectorD<S> = Vector<f64, S>;
 pub type VectorF<S> = Vector<f32, S>;
 pub type VectorI<S> = Vector<i32, S>;

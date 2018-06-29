@@ -3,6 +3,7 @@ use super::{Vector, Vectorizable};
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use std::cmp::Eq;
+use std::hash::{Hash, Hasher};
 use std::fmt;
 
 use std::convert::TryFrom;
@@ -30,7 +31,7 @@ macro_rules! vector {
     }
 }
 
-impl<T: Vectorizable, S: Unsigned + PartialEq> Eq for Vector<T, S> where T: Eq { }
+impl<T: Vectorizable + Eq, S: Unsigned + PartialEq> Eq for Vector<T, S> { }
 
 impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
     /// creates a vector of 0.0s
@@ -41,7 +42,7 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
             phantom: PhantomData
         }
     }
-    
+
     /// get the dimension of the vector
     pub fn dim(&self) -> usize {
         S::to_usize()
@@ -56,7 +57,7 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
     /// maps the vector's component's according to the function provided
     pub fn map<U: Vectorizable, F>(&self, f: F) -> Vector<U, S>
         where F: Fn(&T) -> U {
-        Vector::try_from(self.value.iter().map(f).collect::<Vec<U>>()).unwrap()
+        Vector::make(self.value.iter().map(f).collect::<Vec<U>>())
     }
 
     /// the square of the magnitude
@@ -210,6 +211,14 @@ impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'
             Ok(Self { value: vec, phantom: PhantomData })
         } else {
             Err(Error::invalid_length(vec.len(), &&*format!("expected {}", S::to_usize())))
+        }
+    }
+}
+
+impl<T: Vectorizable + Hash, S: Unsigned> Hash for Vector<T, S> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in self.value.iter() {
+            i.hash(state);
         }
     }
 }
