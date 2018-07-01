@@ -1,10 +1,19 @@
 [package]
 name = "linear-algebra"
-version = "0.7.9"
+version = "0.8.0"
 authors = ["Ozaren <krishna.sd.2012@gmail.com>"]
 
 [features]
+default = ['spec_f32_f64', 'spec_u32_u64', 'spec_i32_i64']
 sized = ["typenum"]
+spec_f32_f64 = []
+spec_u8_u16 = []
+spec_u32_u64 = []
+spec_u128 = []
+spec_i8_i16 = []
+spec_i32_i64 = []
+spec_i128 = []
+spec_complex = []
 
 [dependencies]
 rand = '0.4.2'

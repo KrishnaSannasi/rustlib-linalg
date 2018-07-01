@@ -1,6 +1,6 @@
 extern crate typenum;
 
-use self::typenum::{Unsigned, U2, U3};
+use self::typenum::Unsigned;
 use std::marker::PhantomData;
 #[macro_use]
 pub mod vector_impl;
@@ -29,46 +29,31 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
     }
 }
 
-pub type VectorD<S> = Vector<f64, S>;
-pub type VectorF<S> = Vector<f32, S>;
-pub type VectorI<S> = Vector<i32, S>;
-pub type VectorU<S> = Vector<u32, S>;
-pub type VectorS<S> = Vector<usize, S>;
-
-pub type Vector2D = Vector<f64, U2>;
-pub type Vector2F = Vector<f32, U2>;
-pub type Vector2I = Vector<i32, U2>;
-pub type Vector2U = Vector<u32, U2>;
-pub type Vector2S = Vector<usize, U2>;
-
-pub type Vector3D = Vector<f64, U3>;
-pub type Vector3F = Vector<f32, U3>;
-pub type Vector3I = Vector<i32, U3>;
-pub type Vector3U = Vector<u32, U3>;
-pub type Vector3S = Vector<usize, U3>;
-
-macro_rules! vecable {
-    ($Ty:ty) => {
-        impl Vectorizable for $Ty {}
+macro_rules! specialize {
+    (gen => $name_gen:ident, $type:ty) => {
+        impl Vectorizable for $type {}
+        pub type $name_gen<S> = Vector<$type, S>;
     };
 }
 
-impl<'a, T: Vectorizable> Vectorizable for &'a T {}
+specialize!(gen => VectorF32, f32);
+specialize!(gen => VectorF64, f64);
 
-vecable!(u8);
-vecable!(u16);
-vecable!(u32);
-vecable!(u64);
-vecable!(u128);
-vecable!(usize);
-vecable!(i8);
-vecable!(i16);
-vecable!(i32);
-vecable!(i64);
-vecable!(i128);
-vecable!(isize);
-vecable!(f32);
-vecable!(f64);
+specialize!(gen => VectorU8, u8);
+specialize!(gen => VectorU16, u16);
+specialize!(gen => VectorU32, u32);
+specialize!(gen => VectorU64, u64);
+specialize!(gen => VectorU128, u128);
+specialize!(gen => VectorUSize, usize);
+
+specialize!(gen => VectorI8, i8);
+specialize!(gen => VectorI16, i16);
+specialize!(gen => VectorI32, i32);
+specialize!(gen => VectorI64, i64);
+specialize!(gen => VectorI128, i128);
+specialize!(gen => VectorISize, isize);
+
+impl<'a, T: Vectorizable> Vectorizable for &'a T {}
 
 use num::complex::Complex;
 
