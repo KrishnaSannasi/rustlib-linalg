@@ -1,6 +1,6 @@
 [package]
 name = "linear-algebra"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Ozaren <krishna.sd.2012@gmail.com>"]
 
 [features]
@@ -14,6 +14,15 @@ spec_i8_i16 = []
 spec_i32_i64 = []
 spec_i128 = []
 spec_complex = []
+spec_create_20 = []
+spec_create_30 = []
+spec_create_40 = []
+spec_create_50 = []
+spec_create_60 = []
+spec_create_70 = []
+spec_create_80 = []
+spec_create_90 = []
+spec_create_100 = []
 
 [dependencies]
 rand = '0.4.2'

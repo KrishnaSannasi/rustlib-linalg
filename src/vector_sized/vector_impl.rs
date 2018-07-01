@@ -31,9 +31,42 @@ macro_rules! vector {
     }
 }
 
-impl<T: Vectorizable + Eq, S: Unsigned + PartialEq> Eq for Vector<T, S> { }
+use super::typenum::{IsGreater, U1, U2};
 
-impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
+// convienience accessors methods for common vector usages
+impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
+    // extracts the first element of the vector, equivalent to vector[0]
+    pub fn x(&self) -> T
+    where T: NonZero {
+        self.value[0]
+    }
+
+    // extracts the second element of the vector, equivalent to vector[1]
+    pub fn y(&self) -> T
+    where T: IsGreater<U1> {
+        self.value[1]
+    }
+    
+    // extracts the third element of the vector, equivalent to vector[2]
+    pub fn z(&self) -> T
+    where T: IsGreater<U2> {
+        self.value[2]
+    }
+    
+    // extracts the first element of the vector, equivalent to vector[0]
+    pub fn r(&self) -> T
+    where T: NonZero {
+        self.value[0]
+    }
+
+    // extracts the second element of the vector, equivalent to vector[1]
+    pub fn theta(&self) -> T
+    where T: IsGreater<U1> {
+        self.value[1]
+    }
+}
+
+impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
     /// creates a vector of 0.0s
     pub fn new() -> Self
     where T: Zero {
@@ -214,6 +247,8 @@ impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'
         }
     }
 }
+
+impl<T: Vectorizable + Eq, S: Unsigned + PartialEq> Eq for Vector<T, S> { }
 
 impl<T: Vectorizable + Hash, S: Unsigned> Hash for Vector<T, S> {
     fn hash<H: Hasher>(&self, state: &mut H) {
