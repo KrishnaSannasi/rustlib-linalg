@@ -215,7 +215,6 @@ impl<T: Vectorizable, S: Unsigned> Index<usize> for Vector<T, S> {
 }
 
 impl<T: Vectorizable, S: Unsigned> IndexMut<usize> for Vector<T, S> {
-
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
     }

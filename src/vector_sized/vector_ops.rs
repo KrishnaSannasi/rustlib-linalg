@@ -95,10 +95,10 @@ macro_rules! impl_op {
         }
     };
     (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'b, S, T, U> $Op<&'b Vector<U, S>> for Vector<T, S>
+        impl<'a, S, T, U> $Op<&'a Vector<U, S>> for Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, &'a Vector<U, S>);
         }
     };
     (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
@@ -109,10 +109,10 @@ macro_rules! impl_op {
         }
     };
     (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, 'b, S, T, U> $Op<&'b Vector<U, S>> for &'a mut Vector<T, S>
+        impl<'a, S, T, U> $Op<&'a Vector<U, S>> for &'a mut Vector<T, S>
             where T: Vectorizable + Sized + $Op<U>,
                   U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin assign => $func, $op, &'a Vector<U, S>);
         }
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt) => {

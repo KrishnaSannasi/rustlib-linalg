@@ -16,8 +16,14 @@ macro_rules! count {
     };
 }
 
+macro_rules! rm {
+    ($type:ty, $var_name: ident) => {
+        $type
+    };
+}
+
 macro_rules! vector_create {
-    ($size:ident $(,$var_name: ident)*) => {
+    ($(<- $do_tuple:tt ->)* $size:ident $(,$var_name: ident)*) => {
         impl<T: Vectorizable> Vector<T, $size> {
             pub fn create($($var_name: T),*) -> Self {
                 Self { value: vec![$($var_name),*], phantom: PhantomData }
@@ -29,11 +35,23 @@ macro_rules! vector_create {
                 Self { value: Vec::from(&arr as &[T]), phantom: PhantomData }
             }
         }
+
+        vector_create!($($do_tuple)* => $size $(,$var_name)*);
+    };
+    (no_tuple => $size:ident $(,$var_name: ident)*) => {
+        
+    };
+    (=> $size:ident $(,$var_name: ident)*) => {
+        impl<T: Vectorizable> From<($( rm!(T, $var_name) ),*)> for Vector<T, $size> {
+            fn from(($($var_name),*): ($( rm!(T, $var_name) ),*)) -> Self {
+                Self { value: vec![$($var_name),*], phantom: PhantomData }
+            }
+        }
     };
 }
 
-vector_create!(U0);
-vector_create!(U1, x0);
+vector_create!(<- no_tuple -> U0);
+vector_create!(<- no_tuple -> U1, x0);
 vector_create!(U2, x0, x1);
 vector_create!(U3, x0, x1, x2);
 vector_create!(U4, x0, x1, x2, x3);
