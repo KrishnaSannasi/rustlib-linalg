@@ -1,9 +1,10 @@
-use super::{Vector, Vectorizable};
+use super::{Vector, InVector};
 
 use std::marker::PhantomData;
 use std::convert::From;
 
 use vector_sized::typenum::*;
+use vector_sized::UpdateWith;
 
 macro_rules! count {
     ()        => {0usize};
@@ -24,15 +25,21 @@ macro_rules! rm {
 
 macro_rules! vector_create {
     ($(<- $do_tuple:tt ->)* $size:ident $(,$var_name: ident)*) => {
-        impl<T: Vectorizable> Vector<T, $size> {
+        impl<T: InVector> Vector<T, $size> {
             pub fn create($($var_name: T),*) -> Self {
                 Self { value: vec![$($var_name),*], phantom: PhantomData }
             }
         }
 
-        impl<T: Vectorizable> From<[T; count!($($var_name)*)]> for Vector<T, $size> {
+        impl<T: InVector> From<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn from(arr: [T; count!($($var_name)*)]) -> Self {
                 Self { value: Vec::from(&arr as &[T]), phantom: PhantomData }
+            }
+        }
+
+        impl<T: InVector> UpdateWith<[T; count!($($var_name)*)]> for Vector<T, $size> {
+            fn update_with(&mut self, mut new: [T; count!($($var_name)*)]) {
+                self.value.swap_with_slice(&mut new);
             }
         }
 
@@ -42,9 +49,15 @@ macro_rules! vector_create {
         
     };
     (=> $size:ident $(,$var_name: ident)*) => {
-        impl<T: Vectorizable> From<($( rm!(T, $var_name) ),*)> for Vector<T, $size> {
+        impl<T: InVector> From<($( rm!(T, $var_name) ),*)> for Vector<T, $size> {
             fn from(($($var_name),*): ($( rm!(T, $var_name) ),*)) -> Self {
                 Self { value: vec![$($var_name),*], phantom: PhantomData }
+            }
+        }
+        
+        impl<T: InVector> UpdateWith<($( rm!(T, $var_name) ),*)> for Vector<T, $size> {
+            fn update_with(&mut self, ($($var_name),*): ($( rm!(T, $var_name) ),*)) {
+                self.update_with([$($var_name),*]);
             }
         }
     };

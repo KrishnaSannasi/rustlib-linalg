@@ -1,4 +1,4 @@
-extern crate typenum;
+pub extern crate typenum;
 
 use self::typenum::Unsigned;
 use std::marker::PhantomData;
@@ -11,18 +11,22 @@ pub mod vector_ops_spec;
 #[cfg(test)]
 mod tests;
 
+pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
+
 /// Marker trait to for anything that can be put in a vector
-pub trait Vectorizable: Copy {}
+pub trait InVector: Copy {}
 
 #[derive(Clone, PartialEq)]
-pub struct Vector<T, S>
-    where T: Vectorizable,
-          S: Unsigned {
+pub struct Vector<T, N>
+    where T: InVector,
+          N: Unsigned {
+    // Vec will be changed to [T; N] when const generic numerics comes to nightly
     value: Vec<T>,
-    phantom: PhantomData<S>
+    // *const S, so drop checker knows that Vector does not own a value of S
+    phantom: PhantomData<*const N>
 }
 
-impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
+impl <T: InVector, N: Unsigned> Vector<T, N> {
     // for internal use where the size is gaurenteed to be correct
     fn make(value: Vec<T>) -> Self {
         Self { value, phantom: PhantomData }
@@ -31,7 +35,7 @@ impl <T: Vectorizable, S: Unsigned> Vector<T, S> {
 
 macro_rules! specialize {
     (gen => $name_gen:ident, $type:ty) => {
-        impl Vectorizable for $type {}
+        impl InVector for $type {}
         pub type $name_gen<S> = Vector<$type, S>;
     };
 }
@@ -53,8 +57,8 @@ specialize!(gen => VectorI64, i64);
 specialize!(gen => VectorI128, i128);
 specialize!(gen => VectorISize, isize);
 
-impl<'a, T: Vectorizable> Vectorizable for &'a T {}
+impl<'a, T: InVector> InVector for &'a T {}
 
 use num::complex::Complex;
 
-impl<T: Copy> Vectorizable for Complex<T> {  }
+impl<T: Copy> InVector for Complex<T> {  }

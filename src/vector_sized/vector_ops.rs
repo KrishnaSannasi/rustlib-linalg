@@ -1,6 +1,6 @@
 use std::ops::*;
 
-use super::{Vector, Vectorizable};
+use super::{Vector, InVector};
 use super::typenum::Unsigned;
 
 macro_rules! impl_op {
@@ -21,98 +21,98 @@ macro_rules! impl_op {
     };
     (build assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
-            for i in 0..S::to_usize() {
+            for i in 0..N::to_usize() {
                 self.value[i] $op rhs;
             }
         }
     };
     (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
-            for i in 0..S::to_usize() {
+            for i in 0..N::to_usize() {
                 self.value[i] $op rhs.value[i];
             }
         }
     };
     (own => $Op:ident, $func:ident, $op:tt) => {
-        impl<S, T, U, O> $Op<U> for Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U, Output = O>,
-                  U: Vectorizable + Sized, O: Vectorizable + Sized, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<N, T, U, O> $Op<U> for Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
             impl_op!(build => $func, $op, U);
         }
     };
     (borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, S, T, U, O> $Op<U> for &'a Vector<T, S>
-            where T: Vectorizable + $Op<U, Output = O>,
-                  U: Vectorizable, O: Vectorizable, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<'a, N, T, U, O> $Op<U> for &'a Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
             impl_op!(build => $func, $op, U);
         }
     };
     (own, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<S, T, U, O> $Op<Vector<U, S>> for Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U, Output = O>,
-                  U: Vectorizable + Sized, O: Vectorizable + Sized, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<N, T, U, O> $Op<Vector<U, N>> for Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, Vector<U, S>);
+            impl_op!(build bin => $func, $op, Vector<U, N>);
         }
     };
     (own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'b, S, T, U, O> $Op<&'b Vector<U, S>> for Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U, Output = O>,
-                  U: Vectorizable + Sized, O: Vectorizable + Sized, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin => $func, $op, &'a Vector<U, N>);
         }
     };
     (borrow, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, S, T, U, O> $Op<Vector<U, S>> for &'a Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U, Output = O>,
-                  U: Vectorizable + Sized, O: Vectorizable + Sized, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<'a, N, T, U, O> $Op<Vector<U, N>> for &'a Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, Vector<U, S>);
+            impl_op!(build bin => $func, $op, Vector<U, N>);
         }
     };
     (borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, 'b, S, T, U, O> $Op<&'b Vector<U, S>> for &'a Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U, Output = O>,
-                  U: Vectorizable + Sized, O: Vectorizable + Sized, S: Unsigned {
-            type Output = Vector<O, S>;
+        impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for &'a Vector<T, N>
+            where T: InVector + $Op<U, Output = O>,
+                  U: InVector, O: InVector, N: Unsigned {
+            type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, &'b Vector<U, S>);
+            impl_op!(build bin => $func, $op, &'a Vector<U, N>);
         }
     };
     (assign, own, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<S, T, U> $Op<Vector<U, S>> for Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U>,
-                  U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, Vector<U, S>);
+        impl<N, T, U> $Op<Vector<U, N>> for Vector<T, N>
+            where T: InVector + $Op<U>,
+                  U: InVector, N: Unsigned {
+            impl_op!(build bin assign => $func, $op, Vector<U, N>);
         }
     };
     (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, S, T, U> $Op<&'a Vector<U, S>> for Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U>,
-                  U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U, S>);
+        impl<'a, N, T, U> $Op<&'a Vector<U, N>> for Vector<T, N>
+            where T: InVector + $Op<U>,
+                  U: InVector, N: Unsigned {
+            impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
         }
     };
     (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, S, T, U> $Op<Vector<U, S>> for &'a mut Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U>,
-                  U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, Vector<U, S>);
+        impl<'a, N, T, U> $Op<Vector<U, N>> for &'a mut Vector<T, N>
+            where T: InVector + $Op<U>,
+                  U: InVector, N: Unsigned {
+            impl_op!(build bin assign => $func, $op, Vector<U, N>);
         }
     };
     (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, S, T, U> $Op<&'a Vector<U, S>> for &'a mut Vector<T, S>
-            where T: Vectorizable + Sized + $Op<U>,
-                  U: Vectorizable + Sized, S: Unsigned {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U, S>);
+        impl<'a, N, T, U> $Op<&'a Vector<U, N>> for &'a mut Vector<T, N>
+            where T: InVector + $Op<U>,
+                  U: InVector, N: Unsigned {
+            impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
         }
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt) => {
@@ -168,29 +168,29 @@ impl_op!(op => Mul, mul, * => borrow);
 impl_op!(op => Div, div, / => own);
 impl_op!(op => Div, div, / => borrow);
 
-impl<T: Vectorizable, S: Unsigned, O: Vectorizable> Neg for Vector<T, S>
+impl<T: InVector, N: Unsigned, O: InVector> Neg for Vector<T, N>
 where T: Neg<Output = O> {
-    type Output = Vector<O, S>;
+    type Output = Vector<O, N>;
     default fn neg(self) -> Self::Output { -&self }
 }
 
-impl<'a, T: Vectorizable, S: Unsigned, O: Vectorizable> Neg for &'a Vector<T, S>
+impl<'a, T: InVector, N: Unsigned, O: InVector> Neg for &'a Vector<T, N>
 where T: Neg<Output = O> {
-    type Output = Vector<O, S>;
+    type Output = Vector<O, N>;
     fn neg(self) -> Self::Output {
         self.map(|&x| -x)
     }
 }
 
-impl<T: Vectorizable, S: Unsigned, O: Vectorizable> Not for Vector<T, S>
+impl<T: InVector, N: Unsigned, O: InVector> Not for Vector<T, N>
 where T: Not<Output = O> {
-    type Output = Vector<O, S>;
+    type Output = Vector<O, N>;
     default fn not(self) -> Self::Output { !&self }
 }
 
-impl<'a, T: Vectorizable, S: Unsigned, O: Vectorizable> Not for &'a Vector<T, S>
+impl<'a, T: InVector, N: Unsigned, O: InVector> Not for &'a Vector<T, N>
 where T: Not<Output = O> {
-    type Output = Vector<O, S>;
+    type Output = Vector<O, N>;
     fn not(self) -> Self::Output {
         self.map(|&x| !x)
     }

@@ -13,30 +13,30 @@ macro_rules! impl_spec {
         }
     };
     (block own own => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<S: Unsigned> $Op<Vector<$Ty, S>> for Vector<$Ty, S> {
-            fn $fun(mut self, other: Vector<$Ty, S>) -> Self::Output {
-                impl_spec!(block => $fun, S, self, self, other)
+        impl<N: Unsigned> $Op<Vector<$Ty, N>> for Vector<$Ty, N> {
+            fn $fun(mut self, other: Vector<$Ty, N>) -> Self::Output {
+                impl_spec!(block => $fun, N, self, self, other)
             }
         }
     };
     (block own borrow => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, S: Unsigned> $Op<&'a Vector<$Ty, S>> for Vector<$Ty, S> {
-            fn $fun(mut self, other: &'a Vector<$Ty, S>) -> Self::Output {
-                impl_spec!(block => $fun, S, self, self, other)
+        impl<'a, N: Unsigned> $Op<&'a Vector<$Ty, N>> for Vector<$Ty, N> {
+            fn $fun(mut self, other: &'a Vector<$Ty, N>) -> Self::Output {
+                impl_spec!(block => $fun, N, self, self, other)
             }
         }
     };
     (block borrow own => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, S: Unsigned> $Op<Vector<$Ty, S>> for &'a Vector<$Ty, S> {
-            fn $fun(self, mut other: Vector<$Ty, S>) -> Self::Output {
-                impl_spec!(block => $fun, S, other, self, other)
+        impl<'a, N: Unsigned> $Op<Vector<$Ty, N>> for &'a Vector<$Ty, N> {
+            fn $fun(self, mut other: Vector<$Ty, N>) -> Self::Output {
+                impl_spec!(block => $fun, N, other, self, other)
             }
         }
     };
     (block unary => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, S: Unsigned> $Op for Vector<$Ty, S> {
+        impl<'a, N: Unsigned> $Op for Vector<$Ty, N> {
             fn $fun(mut self) -> Self::Output {
-                impl_spec!(block => $fun, S, self, self)
+                impl_spec!(block => $fun, N, self, self)
             }
         }
     };

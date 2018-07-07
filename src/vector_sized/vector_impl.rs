@@ -1,4 +1,4 @@
-use super::{Vector, Vectorizable};
+use super::{Vector, InVector};
 
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
@@ -6,7 +6,7 @@ use std::cmp::Eq;
 use std::hash::{Hash, Hasher};
 use std::fmt;
 
-use std::convert::TryFrom;
+use std::convert::{TryFrom, Into};
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
@@ -34,7 +34,7 @@ macro_rules! vector {
 use super::typenum::{IsGreater, U1, U2};
 
 // convienience accessors methods for common vector usages
-impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
+impl<T: InVector, N: Unsigned> Vector<T, N> {
     // extracts the first element of the vector, equivalent to vector[0]
     pub fn x(&self) -> T
     where T: NonZero {
@@ -66,29 +66,30 @@ impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
+impl<T: InVector, N: Unsigned> Vector<T, N> {
     /// creates a vector of 0.0s
     pub fn new() -> Self
     where T: Zero {
         Vector {
-            value: vec![T::zero(); S::to_usize()],
+            value: vec![T::zero(); N::to_usize()],
             phantom: PhantomData
         }
     }
 
     /// get the dimension of the vector
     pub fn dim(&self) -> usize {
-        S::to_usize()
+        N::to_usize()
     }
 
     /// conversion functions between different vector types (if the type implements from)
-    pub fn into<U>(&self) -> Vector<U, S>
-        where U: Vectorizable + From<T> {
-        self.map(|&x| U::from(x.clone()))
+    pub fn into<U>(&self) -> Vector<U, N>
+        where U: InVector,
+              T: Into<U>  {
+        self.map(|&x| x.clone().into())
     }
 
     /// maps the vector's component's according to the function provided
-    pub fn map<U: Vectorizable, F>(&self, f: F) -> Vector<U, S>
+    pub fn map<U: InVector, F>(&self, f: F) -> Vector<U, N>
         where F: Fn(&T) -> U {
         Vector::make(self.value.iter().map(f).collect::<Vec<U>>())
     }
@@ -96,31 +97,27 @@ impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
     /// the square of the magnitude
     pub fn magsq(&self) -> T
         where T: Zero + Mul<Output = T>,
-              S: NonZero {
+              N: NonZero {
         self.dot(self)
     }
 
     /// takes the dot product of the two vectors
-    pub fn dot<U: Vectorizable, O>(&self, other: &Vector<U, S>) -> O
-    where O: Vectorizable + Zero,
-          T: Vectorizable + Mul<U, Output = O>,
-          S: NonZero {
-        let mut sum = O::zero();
-        for i in 0..S::to_usize() {
-            sum = sum + self[i] * other[i];
-        }
-        sum
+    pub fn dot<U, O>(&self, other: &Vector<U, N>) -> O
+    where U: InVector,
+          O: InVector + Zero,
+          T: InVector + Mul<U, Output = O> {
+        (self * other).sum()
     }
 
     /// creates a random unit vector
     pub fn rand() -> Self
-    where T: Rand + Float, S: NonZero {
+    where T: Rand + Float, N: NonZero {
         let mut vec = Vec::new();
         let mut rng = thread_rng();
         let one = T::one();
         let two = one + one;
         
-        for _ in 0..S::to_usize() {
+        for _ in 0..N::to_usize() {
             let v: T = rng.gen();
             vec.push(v * two - one);
         }
@@ -129,8 +126,8 @@ impl<T: Vectorizable, S: Unsigned> Vector<T, S> {
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
-    where T: Float, S: NonZero {
+impl<T: InVector, N: Unsigned> Vector<T, N> 
+    where T: Float, N: NonZero {
     /// the magnitude
     pub fn mag(&self) -> T {
         self.magsq().sqrt()
@@ -151,7 +148,7 @@ impl<T: Vectorizable, S: Unsigned> Vector<T, S>
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
+impl<T: InVector, N: Unsigned> Vector<T, N> 
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(&self, value: T) -> Self {
@@ -167,24 +164,20 @@ where T: Add<Output = T> {
     /// sums up the elements of the vector
     pub fn sum(&self) -> T
     where T: Zero {
-        let mut sum = T::zero();
-        for i in self.value.iter() {
-            sum = sum + *i;
-        }
-        sum
+        self.value.iter().fold(T::zero(), |acc, &x| acc + x)
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> Vector<T, S> 
+impl<T: InVector, N: Unsigned> Vector<T, N> 
     where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
-    pub fn lerp(&self, other: &Vector<T, S>, w: T) -> Self {
+    pub fn lerp(&self, other: &Vector<T, N>, w: T) -> Self {
         self * (T::one() - w) + other * w
     }
 }
 
 // traits
-impl<'a, T: Vectorizable, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
+impl<'a, T: InVector, N: Unsigned> TryFrom<&'a [T]> for Vector<T, N> {
     type Error = String;
 
     // get a vector from a slice
@@ -193,20 +186,20 @@ impl<'a, T: Vectorizable, S: Unsigned> TryFrom<&'a [T]> for Vector<T, S> {
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> TryFrom<Vec<T>> for Vector<T, S> {
+impl<T: InVector, N: Unsigned> TryFrom<Vec<T>> for Vector<T, N> {
     type Error = String;
 
     // get a vector from a vec
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
-        if value.len() == S::to_usize() {
+        if value.len() == N::to_usize() {
             Ok(Self { value, phantom: PhantomData })
         } else {
-            Err(format!("the vector's size {}, does not match the vector size {}", value.len(), S::to_usize()))
+            Err(format!("the vector's size {}, does not match the vector size {}", value.len(), N::to_usize()))
         }
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> Index<usize> for Vector<T, S> {
+impl<T: InVector, N: Unsigned> Index<usize> for Vector<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -214,42 +207,42 @@ impl<T: Vectorizable, S: Unsigned> Index<usize> for Vector<T, S> {
     }
 }
 
-impl<T: Vectorizable, S: Unsigned> IndexMut<usize> for Vector<T, S> {
+impl<T: InVector, N: Unsigned> IndexMut<usize> for Vector<T, N> {
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
     }
 }
 
-impl<T: Vectorizable + Sized + fmt::Debug, S: Unsigned> fmt::Debug for Vector<T, S> {
+impl<T: InVector + Sized + fmt::Debug, N: Unsigned> fmt::Debug for Vector<T, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let ret = format!("{:?}", self.value);
         write!(f, "<{}>", &ret[1..ret.len()-1])
     }
 }
 
-impl<T: Vectorizable + Sized + Serialize, S: Unsigned> Serialize for Vector<T, S> {
+impl<T: InVector + Sized + Serialize, N: Unsigned> Serialize for Vector<T, N> {
     fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
     where Ser: Serializer {
         self.value.serialize(serializer)
     }
 }
 
-impl<'de, T: Vectorizable + Sized + Deserialize<'de>, S: Unsigned> Deserialize<'de> for Vector<T, S> {
+impl<'de, T: InVector + Sized + Deserialize<'de>, N: Unsigned> Deserialize<'de> for Vector<T, N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: Deserializer<'de> {
         let vec: Vec<T> = <Vec<T> as Deserialize<'de>>::deserialize(deserializer)?;
 
-        if vec.len() == S::to_usize() {
+        if vec.len() == N::to_usize() {
             Ok(Self { value: vec, phantom: PhantomData })
         } else {
-            Err(Error::invalid_length(vec.len(), &&*format!("expected {}", S::to_usize())))
+            Err(Error::invalid_length(vec.len(), &&*format!("expected {}", N::to_usize())))
         }
     }
 }
 
-impl<T: Vectorizable + Eq, S: Unsigned + PartialEq> Eq for Vector<T, S> { }
+impl<T: InVector + Eq, N: Unsigned + PartialEq> Eq for Vector<T, N> { }
 
-impl<T: Vectorizable + Hash, S: Unsigned> Hash for Vector<T, S> {
+impl<T: InVector + Hash, N: Unsigned> Hash for Vector<T, N> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for i in self.value.iter() {
             i.hash(state);
