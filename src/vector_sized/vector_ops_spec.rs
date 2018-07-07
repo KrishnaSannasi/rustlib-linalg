@@ -45,6 +45,7 @@ macro_rules! impl_spec {
         impl_spec!(block own borrow => $Op, $fun, $Ty);
         impl_spec!(block borrow own => $Op, $fun, $Ty);
     };
+    (block ty op => $Ty:ty) => {};
     (block ty op => $Ty:ty, neg $(,$rest:tt)*) => {
         impl_spec!(block ty op => $Ty $(,$rest)*);
         
@@ -58,7 +59,9 @@ macro_rules! impl_spec {
         impl_spec!(block all => BitXor, bitxor, $Ty);
         impl_spec!(block unary => Not, not, $Ty);
     };
-    (block ty op => $Ty:ty) => {
+    (block ty op => $Ty:ty, norm $(,$rest:tt)*) => {
+        impl_spec!(block ty op => $Ty $(,$rest)*);
+
         impl_spec!(block all => Add, add, $Ty);
         impl_spec!(block all => Sub, sub, $Ty);
         impl_spec!(block all => Mul, mul, $Ty);
@@ -66,19 +69,25 @@ macro_rules! impl_spec {
         impl_spec!(block all => Rem, rem, $Ty);
     };
     (block ty unsign => $Ty:ident, $CTy:ident) => {
-        impl_spec!(block ty op => Complex<$Ty>);
-        impl_spec!(block ty op => $Ty, bin);
+        impl_spec!(block ty op => Complex<$Ty>, norm);
+        impl_spec!(block ty op => $Ty, norm, bin);
     };
     (block ty sign => $Ty:ident, $CTy:ident) => {
-        impl_spec!(block ty op => Complex<$Ty>, neg);
-        impl_spec!(block ty op => $Ty, neg, bin);
+        impl_spec!(block ty op => Complex<$Ty>, norm, neg);
+        impl_spec!(block ty op => $Ty, norm, neg, bin);
     };
     (block ty float => $Ty:ident, $CTy:ident) => {
-        impl_spec!(block ty op => Complex<$Ty>, neg);
-        impl_spec!(block ty op => $Ty, neg);
+        impl_spec!(block ty op => Complex<$Ty>, norm, neg);
+        impl_spec!(block ty op => $Ty, norm, neg);
+    };
+    (block ty => bool, $CTy:ident) => {
+        // impl_spec!(block ty op => Complex<bool>, bin);
+        // impl_spec!(block ty op => bool, bin);
     };
 }
 
+#[cfg(feature = spec_bool)]
+impl_spec!(block ty => bool, ComplexBool);
 #[cfg(feature = spec_f32_f64)]
 impl_spec!(block ty float => f32, ComplexF32);
 #[cfg(feature = spec_f32_f64)]

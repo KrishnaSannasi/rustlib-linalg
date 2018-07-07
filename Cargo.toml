@@ -1,11 +1,12 @@
 [package]
 name = "linear-algebra"
-version = "0.8.3"
+version = "0.8.4"
 authors = ["Ozaren <krishna.sd.2012@gmail.com>"]
 
 [features]
-default = ['spec_f32_f64', 'spec_u32_u64', 'spec_i32_i64']
+default = ['spec_f32_f64', 'spec_bool', 'spec_u32_u64', 'spec_i32_i64']
 sized = ["typenum"]
+spec_bool = []
 spec_f32_f64 = []
 spec_u8_u16 = []
 spec_u32_u64 = []

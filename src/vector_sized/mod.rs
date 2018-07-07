@@ -7,6 +7,7 @@ pub mod vector_impl;
 pub mod vector_impl_spec;
 pub mod vector_ops;
 pub mod vector_ops_spec;
+pub mod iter;
 
 #[cfg(test)]
 mod tests;
@@ -26,6 +27,9 @@ pub struct Vector<T, N>
     phantom: PhantomData<*const N>
 }
 
+#[derive(Debug)]
+pub struct TryFromVectorError(String);
+
 impl <T: InVector, N: Unsigned> Vector<T, N> {
     // for internal use where the size is gaurenteed to be correct
     fn make(value: Vec<T>) -> Self {
@@ -39,6 +43,8 @@ macro_rules! specialize {
         pub type $name_gen<S> = Vector<$type, S>;
     };
 }
+
+specialize!(gen => VectorBool, bool);
 
 specialize!(gen => VectorF32, f32);
 specialize!(gen => VectorF64, f64);

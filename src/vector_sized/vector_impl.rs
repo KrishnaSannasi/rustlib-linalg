@@ -1,9 +1,10 @@
-use super::{Vector, InVector};
+use super::{Vector, InVector, TryFromVectorError};
 
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
-use std::cmp::Eq;
 use std::hash::{Hash, Hasher};
+use std::cmp::Eq;
+use std::error;
 use std::fmt;
 
 use std::convert::{TryFrom, Into};
@@ -177,8 +178,16 @@ impl<T: InVector, N: Unsigned> Vector<T, N>
 }
 
 // traits
+impl fmt::Display for TryFromVectorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl error::Error for TryFromVectorError {}
+
 impl<'a, T: InVector, N: Unsigned> TryFrom<&'a [T]> for Vector<T, N> {
-    type Error = String;
+    type Error = TryFromVectorError;
 
     // get a vector from a slice
     fn try_from(value: &'a [T]) -> Result<Self, Self::Error> {
@@ -187,14 +196,14 @@ impl<'a, T: InVector, N: Unsigned> TryFrom<&'a [T]> for Vector<T, N> {
 }
 
 impl<T: InVector, N: Unsigned> TryFrom<Vec<T>> for Vector<T, N> {
-    type Error = String;
+    type Error = TryFromVectorError;
 
     // get a vector from a vec
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
         if value.len() == N::to_usize() {
             Ok(Self { value, phantom: PhantomData })
         } else {
-            Err(format!("the vector's size {}, does not match the vector size {}", value.len(), N::to_usize()))
+            Err(TryFromVectorError(format!("the vector's size {}, does not match the vector size {}", value.len(), N::to_usize())))
         }
     }
 }
