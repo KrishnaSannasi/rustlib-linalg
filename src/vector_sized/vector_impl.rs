@@ -38,31 +38,31 @@ use super::typenum::{IsGreater, U1, U2};
 impl<T: InVector, N: Unsigned> Vector<T, N> {
     // extracts the first element of the vector, equivalent to vector[0]
     pub fn x(&self) -> T
-    where T: NonZero {
+    where N: NonZero {
         self.value[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn y(&self) -> T
-    where T: IsGreater<U1> {
+    where N: IsGreater<U1> {
         self.value[1]
     }
     
     // extracts the third element of the vector, equivalent to vector[2]
     pub fn z(&self) -> T
-    where T: IsGreater<U2> {
+    where N: IsGreater<U2> {
         self.value[2]
     }
     
     // extracts the first element of the vector, equivalent to vector[0]
     pub fn r(&self) -> T
-    where T: NonZero {
+    where N: NonZero {
         self.value[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn theta(&self) -> T
-    where T: IsGreater<U1> {
+    where N: IsGreater<U1> {
         self.value[1]
     }
 }
