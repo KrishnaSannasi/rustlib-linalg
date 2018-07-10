@@ -32,7 +32,7 @@ macro_rules! vector {
     }
 }
 
-use super::typenum::{IsGreater, U1, U2};
+use super::typenum::{IsGreater, Diff, U1, U2};
 
 // convienience accessors methods for common vector usages
 impl<T: InVector, N: Unsigned> Vector<T, N> {
@@ -44,13 +44,15 @@ impl<T: InVector, N: Unsigned> Vector<T, N> {
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn y(&self) -> T
-    where N: IsGreater<U1> {
+    where N: Sub<U1>,
+          Diff<N, U1>: NonZero {
         self.value[1]
     }
     
     // extracts the third element of the vector, equivalent to vector[2]
     pub fn z(&self) -> T
-    where N: IsGreater<U2> {
+    where N: Sub<U2>,
+          Diff<N, U2>: NonZero {
         self.value[2]
     }
     
