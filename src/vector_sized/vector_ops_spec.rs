@@ -4,39 +4,39 @@ use num::complex::Complex;
 use super::typenum::*;
 
 macro_rules! impl_spec {
-    (block => $fun:tt, $S:ident, $output:ident, $self:ident $(,$other:tt)*) => { // using star because ? is unstable
-        {
-            for i in 0..$S::to_usize() {
-                $output.value[i] = $self.value[i].$fun($($other[i])*);
-            }
-            $output
-        }
-    };
+    (block => $fun:ident, $output:ident $(,$other:tt)*) => {{ // using star because ? is unstable
+        $output.iter_mut()$(.zip($other.iter()))*.for_each($fun);
+        $output
+    }};
     (block own own => $Op:ident, $fun:ident, $Ty:ty) => {
         impl<N: Unsigned> $Op<Vector<$Ty, N>> for Vector<$Ty, N> {
             fn $fun(mut self, other: Vector<$Ty, N>) -> Self::Output {
-                impl_spec!(block => $fun, N, self, self, other)
+                let fun = |(s, &o): (&mut $Ty, &$Ty)| *s = (*s).$fun(o);
+                impl_spec!(block => fun, self, other)
             }
         }
     };
     (block own borrow => $Op:ident, $fun:ident, $Ty:ty) => {
         impl<'a, N: Unsigned> $Op<&'a Vector<$Ty, N>> for Vector<$Ty, N> {
             fn $fun(mut self, other: &'a Vector<$Ty, N>) -> Self::Output {
-                impl_spec!(block => $fun, N, self, self, other)
+                let fun = |(s, &o): (&mut $Ty, &$Ty)| *s = (*s).$fun(o);
+                impl_spec!(block => fun, self, other)
             }
         }
     };
     (block borrow own => $Op:ident, $fun:ident, $Ty:ty) => {
         impl<'a, N: Unsigned> $Op<Vector<$Ty, N>> for &'a Vector<$Ty, N> {
             fn $fun(self, mut other: Vector<$Ty, N>) -> Self::Output {
-                impl_spec!(block => $fun, N, other, self, other)
+                let fun = |(o, &s): (&mut $Ty, &$Ty)| *o = s.$fun(*o);
+                impl_spec!(block => fun, other, self)
             }
         }
     };
     (block unary => $Op:ident, $fun:ident, $Ty:ty) => {
         impl<'a, N: Unsigned> $Op for Vector<$Ty, N> {
             fn $fun(mut self) -> Self::Output {
-                impl_spec!(block => $fun, N, self, self)
+                let fun = |o: &mut $Ty| *o = (*o).$fun();
+                impl_spec!(block => fun, self)
             }
         }
     };
