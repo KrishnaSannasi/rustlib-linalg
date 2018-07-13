@@ -172,6 +172,14 @@ where T: Add<Output = T> {
 }
 
 impl<T: InVector, N: Unsigned> Vector<T, N> 
+where T: Mul<Output = T> + One {
+    /// sums up the elements of the vector
+    pub fn product(&self) -> T {
+        self.value.iter().fold(T::one(), |acc, &x| acc * x)
+    }
+}
+
+impl<T: InVector, N: Unsigned> Vector<T, N> 
     where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
     pub fn lerp(&self, other: &Vector<T, N>, w: T) -> Self {

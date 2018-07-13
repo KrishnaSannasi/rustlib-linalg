@@ -1,5 +1,6 @@
 pub mod vector_impl;
 pub mod vector_ops;
+pub mod iter;
 
 #[cfg(test)]
 mod tests;
