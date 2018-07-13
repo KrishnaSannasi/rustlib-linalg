@@ -1,5 +1,8 @@
 use super::*;
 
+type VectorI = ::VectorI32;
+type VectorD = ::VectorF64;
+
 #[test]
 fn init() {
     let v = VectorI::new(2);

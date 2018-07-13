@@ -14,8 +14,6 @@ mod tests;
 
 use super::InVector;
 
-pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
-
 #[derive(Clone, PartialEq)]
 pub struct Vector<T, N>
     where T: InVector,

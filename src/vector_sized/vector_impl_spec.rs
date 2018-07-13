@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::convert::From;
 
 use vector_sized::typenum::*;
-use vector_sized::UpdateWith;
+use ::UpdateWith;
 
 #[inline]
 #[doc(hidden)]
@@ -30,6 +30,7 @@ macro_rules! rm {
         $($type)*
     };
 }
+
 use std::fmt::Debug;
 macro_rules! vector_create {
     ($(<- $do_tuple:tt ->)* $size:ident $(,$var_name: ident)*) => {

@@ -1,4 +1,5 @@
 pub mod vector_impl;
+pub mod vector_impl_spec;
 pub mod vector_ops;
 pub mod iter;
 

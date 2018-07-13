@@ -2,13 +2,14 @@ use super::{Vector, InVector};
 
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use std::hash::{Hash, Hasher};
+use std::slice::SliceIndex;
+use std::convert::Into;
 use std::cmp::Eq;
+use std::result;
 use std::fmt;
 
-use std::convert::Into;
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
-use std::result;
 
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
@@ -159,16 +160,28 @@ impl<T: InVector> Vector<T>
 }
 
 // traits
-impl<T: InVector> Index<usize> for Vector<T> {
-    type Output = T;
+impl<'a, T: InVector> From<&'a [T]> for Vector<T> {
+    fn from(slice: &'a [T]) -> Self {
+        Self::from(<Vec<T>>::from(slice))
+    }
+}
 
-    fn index(&self, index: usize) -> &Self::Output {
+impl<T: InVector> From<Vec<T>> for Vector<T> {
+    fn from(value: Vec<T>) -> Self {
+        Self { value }
+    }
+}
+
+impl<T: InVector, I: SliceIndex<[T]>> Index<I> for Vector<T> {
+    type Output = <Vec<T> as Index<I>>::Output;
+
+    fn index(&self, index: I) -> &Self::Output {
         &self.value[index]
     }
 }
 
-impl<T: InVector> IndexMut<usize> for Vector<T> {
-    fn index_mut(&mut self, index: usize) -> &mut T {
+impl<T: InVector, I: SliceIndex<[T]>> IndexMut<I> for Vector<T> {
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
         &mut self.value[index]
     }
 }

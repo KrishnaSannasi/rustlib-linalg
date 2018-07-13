@@ -2,12 +2,13 @@ use super::{Vector, InVector, TryFromVectorError};
 
 use std::marker::PhantomData;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
+use std::convert::{TryFrom, Into};
 use std::hash::{Hash, Hasher};
+use std::slice::SliceIndex;
 use std::cmp::Eq;
 use std::error;
 use std::fmt;
 
-use std::convert::{TryFrom, Into};
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
@@ -218,16 +219,16 @@ impl<T: InVector, N: Unsigned> TryFrom<Vec<T>> for Vector<T, N> {
     }
 }
 
-impl<T: InVector, N: Unsigned> Index<usize> for Vector<T, N> {
-    type Output = T;
+impl<T: InVector, N: Unsigned, I: SliceIndex<[T]>> Index<I> for Vector<T, N> {
+    type Output = <Vec<T> as Index<I>>::Output;
 
-    fn index(&self, index: usize) -> &Self::Output {
+    fn index(&self, index: I) -> &Self::Output {
         &self.value[index]
     }
 }
 
-impl<T: InVector, N: Unsigned> IndexMut<usize> for Vector<T, N> {
-    fn index_mut(&mut self, index: usize) -> &mut T {
+impl<T: InVector, N: Unsigned, I: SliceIndex<[T]>> IndexMut<I> for Vector<T, N> {
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
         &mut self.value[index]
     }
 }

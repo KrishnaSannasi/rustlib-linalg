@@ -24,6 +24,8 @@ mod macros {
 /// Marker trait to for anything that can be put in a vector
 pub trait InVector: Copy {}
 
+pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
+
 macro_rules! specialize {
     (gen => $sized_name_gen:ident, $name_gen:ident, $type:ty) => {
         impl InVector for $type {}
@@ -57,3 +59,4 @@ impl<'a, T: InVector> InVector for &'a T {}
 use num::complex::Complex;
 
 impl<T: Copy> InVector for Complex<T> {  }
+
