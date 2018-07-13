@@ -12,10 +12,9 @@ pub mod iter;
 #[cfg(test)]
 mod tests;
 
-pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
+use super::InVector;
 
-/// Marker trait to for anything that can be put in a vector
-pub trait InVector: Copy {}
+pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
 
 #[derive(Clone, PartialEq)]
 pub struct Vector<T, N>
@@ -36,35 +35,3 @@ impl <T: InVector, N: Unsigned> Vector<T, N> {
         Self { value, phantom: PhantomData }
     }
 }
-
-macro_rules! specialize {
-    (gen => $name_gen:ident, $type:ty) => {
-        impl InVector for $type {}
-        pub type $name_gen<S> = Vector<$type, S>;
-    };
-}
-
-specialize!(gen => VectorBool, bool);
-
-specialize!(gen => VectorF32, f32);
-specialize!(gen => VectorF64, f64);
-
-specialize!(gen => VectorU8, u8);
-specialize!(gen => VectorU16, u16);
-specialize!(gen => VectorU32, u32);
-specialize!(gen => VectorU64, u64);
-specialize!(gen => VectorU128, u128);
-specialize!(gen => VectorUSize, usize);
-
-specialize!(gen => VectorI8, i8);
-specialize!(gen => VectorI16, i16);
-specialize!(gen => VectorI32, i32);
-specialize!(gen => VectorI64, i64);
-specialize!(gen => VectorI128, i128);
-specialize!(gen => VectorISize, isize);
-
-impl<'a, T: InVector> InVector for &'a T {}
-
-use num::complex::Complex;
-
-impl<T: Copy> InVector for Complex<T> {  }

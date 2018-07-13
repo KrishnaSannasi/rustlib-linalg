@@ -1,41 +1,106 @@
+use super::{Vector, InVector};
+
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
+use std::hash::{Hash, Hasher};
 use std::cmp::Eq;
 use std::fmt;
 
+use std::convert::Into;
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
+use std::result;
 
-use super::Vector;
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
-// related functions
-impl<T> Vector<T>
-    where T: Copy {
-    /// creates a vector of 0.0s with the dimension given
-    pub fn new(dim: usize) -> Self
-    where T: Zero {
-        Self::from(vec![T::zero(); dim])
+pub type Result<T> = result::Result<T, String>;
+
+// convienience accessors methods for common vector usages
+impl<T: InVector> Vector<T> {
+    // extracts the first element of the vector, equivalent to vector[0]
+    pub fn x(&self) -> T {
+        self.value[0]
     }
 
-    /// creates a random unit vector with the dimension given
+    // extracts the second element of the vector, equivalent to vector[1]
+    pub fn y(&self) -> T {
+        self.value[1]
+    }
+    
+    // extracts the third element of the vector, equivalent to vector[2]
+    pub fn z(&self) -> T {
+        self.value[2]
+    }
+    
+    // extracts the first element of the vector, equivalent to vector[0]
+    pub fn r(&self) -> T {
+        self.value[0]
+    }
+
+    // extracts the second element of the vector, equivalent to vector[1]
+    pub fn theta(&self) -> T {
+        self.value[1]
+    }
+}
+
+impl<T: InVector> Vector<T> {
+    /// creates a vector of 0.0s
+    pub fn new(dim: usize) -> Self
+    where T: Zero {
+        Vector {
+            value: vec![T::zero(); dim],
+        }
+    }
+
+    /// get the dimension of the vector
+    pub fn dim(&self) -> usize {
+        self.value.len()
+    }
+
+    /// conversion functions between different vector types (if the type implements from)
+    pub fn into<U>(&self) -> Vector<U>
+        where U: InVector,
+              T: Into<U>  {
+        self.map(|&x| x.clone().into())
+    }
+
+    /// maps the vector's component's according to the function provided
+    pub fn map<U: InVector, F>(&self, f: F) -> Vector<U>
+        where F: Fn(&T) -> U {
+        Vector { value: self.value.iter().map(f).collect::<Vec<U>>() }
+    }
+
+    /// the square of the magnitude
+    pub fn magsq(&self) -> T
+        where T: Zero + Mul<Output = T> {
+        self.dot(self)
+    }
+
+    /// takes the dot product of the two vectors
+    pub fn dot<U, O>(&self, other: &Vector<U>) -> O
+    where U: InVector,
+          O: InVector + Zero,
+          T: InVector + Mul<U, Output = O> {
+        (self * other).sum()
+    }
+
+    /// creates a random unit vector
     pub fn rand(dim: usize) -> Self
     where T: Rand + Float {
-        let mut vec = Vec::new();
+        let mut value = Vec::new();
         let mut rng = thread_rng();
         let one = T::one();
         let two = one + one;
         
         for _ in 0..dim {
             let v: T = rng.gen();
-            vec.push(v * two - one);
+            value.push(v * two - one);
         }
 
-        Self::from(vec).norm()
+        Vector { value }.norm()
     }
 }
 
-impl<T> Eq for Vector<T> where T: Copy + Eq { }
-
-impl<T> Vector<T> 
+impl<T: InVector> Vector<T> 
     where T: Float {
     /// the magnitude
     pub fn mag(&self) -> T {
@@ -45,7 +110,7 @@ impl<T> Vector<T>
     /// returns a unit vector with the same 
     /// direction and dimension as the parent vector
     pub fn norm(&self) -> Self {
-        self / &self.mag()
+        self / self.mag()
     }
     
     /// gives the angle between two vectors
@@ -57,8 +122,8 @@ impl<T> Vector<T>
     }
 }
 
-impl<T> Vector<T> 
-where T: Copy + Add<Output = T> {
+impl<T: InVector> Vector<T> 
+where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(&self, value: T) -> Self {
         let mut vec = Vec::new();
@@ -67,88 +132,26 @@ where T: Copy + Add<Output = T> {
             vec.push(*i + value);
         }
 
-        Self::from(vec)
+        Self { value: vec }
     }
 
     /// sums up the elements of the vector
     pub fn sum(&self) -> T
     where T: Zero {
-        let mut sum = T::zero();
-        for i in self.value.iter() {
-            sum = sum + *i;
-        }
-        sum
+        self.value.iter().fold(T::zero(), |acc, &x| acc + x)
     }
 }
 
-impl<T> Vector<T> 
-where T: Copy {
-    /// get the dimension of the vector
-    pub fn dim(&self) -> usize {
-        self.value.len()
-    }
-
-    /// conversion functions between different vector types (if the type implements from)
-    pub fn into<U>(&self) -> Vector<U>
-        where U: Copy + From<T> {
-        self.map(|&x| U::from(x.clone()))
-    }
-
-    /// maps the vector's component's according to the function provided
-    pub fn map<U, F>(&self, f: F) -> Vector<U>
-        where U: Copy,
-              F: Fn(&T) -> U {
-        Vector::from(self.value.iter().map(f).collect::<Vec<U>>())
-    }
-
-    /// the square of the magnitude
-    pub fn magsq(&self) -> T
-        where T: Zero + Mul<Output = T> {
-        self.dot(self)
-    }
-
-    /// takes the dot product of the two vectors
-    pub fn dot<U, O>(&self, other: &Vector<U>) -> O 
-    where O: Copy + Zero,
-          U: Copy,
-          T: Copy + Mul<U, Output = O> {
-        self.value.iter()
-                  .zip(other.value.iter())
-                  .fold(O::zero(), |sum, (&t, &u)| sum + t * u)
-    }
-}
-
-impl<T> Vector<T> 
-    where T: Copy + One + 
-             Add<Output = T> +
-             Sub<Output = T> {
+impl<T: InVector> Vector<T> 
+    where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
-    pub fn lerp(&self, other: &Vector<T>, w: T) -> Result<Self, String> {
-        self * &(T::one() - w) + other * &w
+    pub fn lerp(&self, other: &Vector<T>, w: T) -> Self {
+        self * (T::one() - w) + other * w
     }
 }
 
 // traits
-impl<'a, T> From<&'a [T]> for Vector<T>
-    where T: Copy {
-    
-    // get a vector from a slice
-    fn from(value: &'a [T]) -> Self {
-        Self::from(Vec::from(value))
-    }
-}
-
-impl<T> From<Vec<T>> for Vector<T>
-    where T: Copy {
-    
-    // get a vector from a vec
-    fn from(value: Vec<T>) -> Self {
-        Self { value }
-    }
-}
-
-impl<T> Index<usize> for Vector<T>
-    where T: Copy {
+impl<T: InVector> Index<usize> for Vector<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -156,17 +159,41 @@ impl<T> Index<usize> for Vector<T>
     }
 }
 
-impl<T> IndexMut<usize> for Vector<T>
-    where T: Copy {
-
+impl<T: InVector> IndexMut<usize> for Vector<T> {
     fn index_mut(&mut self, index: usize) -> &mut T {
         &mut self.value[index]
     }
 }
 
-impl<T: Copy + fmt::Debug> fmt::Debug for Vector<T> {
+impl<T: InVector + Sized + fmt::Debug> fmt::Debug for Vector<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let ret = format!("{:?}", self.value);
         write!(f, "<{}>", &ret[1..ret.len()-1])
+    }
+}
+
+impl<T: InVector + Sized + Serialize> Serialize for Vector<T> {
+    fn serialize<Ser>(&self, serializer: Ser) -> result::Result<Ser::Ok, Ser::Error>
+    where Ser: Serializer {
+        self.value.serialize(serializer)
+    }
+}
+
+impl<'de, T: InVector + Sized + Deserialize<'de>> Deserialize<'de> for Vector<T> {
+    fn deserialize<D>(deserializer: D) -> result::Result<Self, D::Error>
+    where D: Deserializer<'de> {
+        let vec: Vec<T> = <Vec<T> as Deserialize<'de>>::deserialize(deserializer)?;
+
+        Ok(Self { value: vec })
+    }
+}
+
+impl<T: InVector + Eq + PartialEq> Eq for Vector<T> { }
+
+impl<T: InVector + Hash> Hash for Vector<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in self.value.iter() {
+            i.hash(state);
+        }
     }
 }

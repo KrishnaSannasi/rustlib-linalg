@@ -4,14 +4,10 @@ pub mod vector_ops;
 #[cfg(test)]
 mod tests;
 
+use super::InVector;
+
 #[derive(Clone, PartialEq)]
 pub struct Vector<T>
-    where T: Copy {
+    where T: InVector {
     value: Vec<T>
 }
-
-pub type VectorD = Vector<f64>;
-pub type VectorF = Vector<f32>;
-pub type VectorI = Vector<i32>;
-pub type VectorU = Vector<u32>;
-pub type VectorS = Vector<usize>;
