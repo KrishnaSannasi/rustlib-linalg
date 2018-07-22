@@ -1,9 +1,8 @@
 use super::{Vector, InVector};
-
-use std::marker::PhantomData;
 use std::convert::From;
 
 use vector_sized::typenum::*;
+use super::generic_array::GenericArray;
 use ::UpdateWith;
 
 #[inline]
@@ -36,13 +35,13 @@ macro_rules! vector_create {
     ($(<- $do_tuple:tt ->)* $size:ident $(,$var_name: ident)*) => {
         impl<T: InVector> Vector<T, $size> {
             pub fn create($($var_name: T),*) -> Self {
-                Self { value: vec![$($var_name),*], phantom: PhantomData }
+                Self::from([$($var_name),*])
             }
         }
 
         impl<T: InVector> From<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn from(arr: [T; count!($($var_name)*)]) -> Self {
-                Self { value: Vec::from(&arr as &[T]), phantom: PhantomData }
+                Vector(GenericArray::clone_from_slice(&arr))
             }
         }
 
@@ -50,9 +49,9 @@ macro_rules! vector_create {
             fn into(self) -> [T; count!($($var_name)*)] {
                 use std::mem::forget;
                 
-                let slice = &*self.value as *const [T] as *const [T; count!($($var_name)*)];
+                let slice = &*self.0 as *const [T] as *const [T; count!($($var_name)*)];
                 let array = unsafe { *slice };
-                forget(self.value);
+                forget(self.0);
 
                 array
             }
@@ -60,7 +59,7 @@ macro_rules! vector_create {
 
         impl<T: InVector> UpdateWith<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn update_with(&mut self, mut new: [T; count!($($var_name)*)]) {
-                self.value.swap_with_slice(&mut new);
+                self.0.swap_with_slice(&mut new);
             }
         }
 
@@ -72,13 +71,13 @@ macro_rules! vector_create {
     (=> $size:ident $(,$var_name: ident)*) => {
         impl<T: InVector> From<($( rm!($var_name, T) ),*)> for Vector<T, $size> {
             fn from(($($var_name),*): ($( rm!($var_name, T) ),*)) -> Self {
-                Self { value: vec![$($var_name),*], phantom: PhantomData }
+                Self::from([$($var_name),*])
             }
         }
         
         impl<T: InVector> Into<($( rm!($var_name, T) ),*)> for Vector<T, $size> {
             fn into(self) -> ($( rm!($var_name, T) ),*) {
-                let mut i = self.value.into_iter();
+                let mut i = self.0.into_iter();
                 (
                     $(
                         rm!($var_name, i.next().unwrap())

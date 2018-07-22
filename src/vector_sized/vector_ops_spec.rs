@@ -1,7 +1,8 @@
 use super::Vector;
+use super::generic_array::ArrayLength;
+
 use std::ops::*;
 use num::complex::Complex;
-use super::typenum::*;
 
 macro_rules! impl_spec {
     (block => $fun:ident, $output:ident $(,$other:tt)*) => {{ // using star because ? is unstable
@@ -9,7 +10,7 @@ macro_rules! impl_spec {
         $output
     }};
     (block own own => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<N: Unsigned> $Op<Vector<$Ty, N>> for Vector<$Ty, N> {
+        impl<N: ArrayLength<$Ty>> $Op<Vector<$Ty, N>> for Vector<$Ty, N> {
             fn $fun(mut self, other: Vector<$Ty, N>) -> Self::Output {
                 let fun = |(s, &o): (&mut $Ty, &$Ty)| *s = (*s).$fun(o);
                 impl_spec!(block => fun, self, other)
@@ -17,7 +18,7 @@ macro_rules! impl_spec {
         }
     };
     (block own borrow => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, N: Unsigned> $Op<&'a Vector<$Ty, N>> for Vector<$Ty, N> {
+        impl<'a, N: ArrayLength<$Ty>> $Op<&'a Vector<$Ty, N>> for Vector<$Ty, N> {
             fn $fun(mut self, other: &'a Vector<$Ty, N>) -> Self::Output {
                 let fun = |(s, &o): (&mut $Ty, &$Ty)| *s = (*s).$fun(o);
                 impl_spec!(block => fun, self, other)
@@ -25,7 +26,7 @@ macro_rules! impl_spec {
         }
     };
     (block borrow own => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, N: Unsigned> $Op<Vector<$Ty, N>> for &'a Vector<$Ty, N> {
+        impl<'a, N: ArrayLength<$Ty>> $Op<Vector<$Ty, N>> for &'a Vector<$Ty, N> {
             fn $fun(self, mut other: Vector<$Ty, N>) -> Self::Output {
                 let fun = |(o, &s): (&mut $Ty, &$Ty)| *o = s.$fun(*o);
                 impl_spec!(block => fun, other, self)
@@ -33,7 +34,7 @@ macro_rules! impl_spec {
         }
     };
     (block unary => $Op:ident, $fun:ident, $Ty:ty) => {
-        impl<'a, N: Unsigned> $Op for Vector<$Ty, N> {
+        impl<'a, N: ArrayLength<$Ty>> $Op for Vector<$Ty, N> {
             fn $fun(mut self) -> Self::Output {
                 let fun = |o: &mut $Ty| *o = (*o).$fun();
                 impl_spec!(block => fun, self)

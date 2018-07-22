@@ -1,42 +1,44 @@
 use std::ops::*;
 
 use super::{Vector, InVector};
-use super::typenum::Unsigned;
+use super::generic_array::{GenericArray, ArrayLength};
 
 macro_rules! impl_op {
     (build => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(self, rhs: $RHS) -> Self::Output {
-            Vector::make(self.value.iter()
-                                   .map(|&i| i $op rhs)
-                                   .collect::<Vec<O>>())
+            self.iter()
+                      .map(|&i| i $op rhs)
+                      .collect::<GenericArray<_, _>>()
+                      .into()
         }
     };
     (build bin => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(self, rhs: $RHS) -> Self::Output {
-            Vector::make(self.value.iter()
-                                   .zip(rhs.value.iter())
-                                   .map(|(&i, &j)| i $op j)
-                                   .collect::<Vec<O>>())
+            self.iter()
+                      .zip(rhs.iter())
+                      .map(|(&i, &j)| i $op j)
+                      .collect::<GenericArray<_, _>>()
+                      .into()
         }
     };
     (build assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
             for i in 0..N::to_usize() {
-                self.value[i] $op rhs;
+                self[i] $op rhs;
             }
         }
     };
     (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
             for i in 0..N::to_usize() {
-                self.value[i] $op rhs.value[i];
+                self[i] $op rhs[i];
             }
         }
     };
     (own => $Op:ident, $func:ident, $op:tt) => {
         impl<N, T, U, O> $Op<U> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector, N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build => $func, $op, U);
@@ -45,7 +47,7 @@ macro_rules! impl_op {
     (borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U, O> $Op<U> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector, N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build => $func, $op, U);
@@ -54,7 +56,8 @@ macro_rules! impl_op {
     (own, own => $Op:ident, $func:ident, $op:tt) => {
         impl<N, T, U, O> $Op<Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector,
+                  N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build bin => $func, $op, Vector<U, N>);
@@ -63,7 +66,8 @@ macro_rules! impl_op {
     (own, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector,
+                  N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build bin => $func, $op, &'a Vector<U, N>);
@@ -72,7 +76,8 @@ macro_rules! impl_op {
     (borrow, own => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U, O> $Op<Vector<U, N>> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector,
+                  N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build bin => $func, $op, Vector<U, N>);
@@ -81,7 +86,8 @@ macro_rules! impl_op {
     (borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
-                  U: InVector, O: InVector, N: Unsigned {
+                  U: InVector, O: InVector,
+                  N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
             impl_op!(build bin => $func, $op, &'a Vector<U, N>);
@@ -90,28 +96,28 @@ macro_rules! impl_op {
     (assign, own, own => $Op:ident, $func:ident, $op:tt) => {
         impl<N, T, U> $Op<Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U>,
-                  U: InVector, N: Unsigned {
+                  U: InVector, N: ArrayLength<T> + ArrayLength<U> {
             impl_op!(build bin assign => $func, $op, Vector<U, N>);
         }
     };
     (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U> $Op<&'a Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U>,
-                  U: InVector, N: Unsigned {
+                  U: InVector, N: ArrayLength<T> + ArrayLength<U> {
             impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
         }
     };
     (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U> $Op<Vector<U, N>> for &'a mut Vector<T, N>
             where T: InVector + $Op<U>,
-                  U: InVector, N: Unsigned {
+                  U: InVector, N: ArrayLength<T> + ArrayLength<U> {
             impl_op!(build bin assign => $func, $op, Vector<U, N>);
         }
     };
     (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U> $Op<&'a Vector<U, N>> for &'a mut Vector<T, N>
             where T: InVector + $Op<U>,
-                  U: InVector, N: Unsigned {
+                  U: InVector, N: ArrayLength<T> + ArrayLength<U> {
             impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
         }
     };
@@ -168,13 +174,13 @@ impl_op!(op => Mul, mul, * => borrow);
 impl_op!(op => Div, div, / => own);
 impl_op!(op => Div, div, / => borrow);
 
-impl<T: InVector, N: Unsigned, O: InVector> Neg for Vector<T, N>
+impl<T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Neg for Vector<T, N>
 where T: Neg<Output = O> {
     type Output = Vector<O, N>;
     default fn neg(self) -> Self::Output { -&self }
 }
 
-impl<'a, T: InVector, N: Unsigned, O: InVector> Neg for &'a Vector<T, N>
+impl<'a, T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Neg for &'a Vector<T, N>
 where T: Neg<Output = O> {
     type Output = Vector<O, N>;
     fn neg(self) -> Self::Output {
@@ -182,13 +188,13 @@ where T: Neg<Output = O> {
     }
 }
 
-impl<T: InVector, N: Unsigned, O: InVector> Not for Vector<T, N>
+impl<T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Not for Vector<T, N>
 where T: Not<Output = O> {
     type Output = Vector<O, N>;
     default fn not(self) -> Self::Output { !&self }
 }
 
-impl<'a, T: InVector, N: Unsigned, O: InVector> Not for &'a Vector<T, N>
+impl<'a, T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Not for &'a Vector<T, N>
 where T: Not<Output = O> {
     type Output = Vector<O, N>;
     fn not(self) -> Self::Output {

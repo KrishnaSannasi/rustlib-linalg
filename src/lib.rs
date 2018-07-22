@@ -4,10 +4,6 @@ extern crate rand;
 extern crate num;
 extern crate serde;
 
-pub mod vector;
-#[cfg(feature = "sized")]
-pub mod vector_sized;
-
 #[macro_use]
 mod macros {
     #[macro_export]
@@ -20,6 +16,10 @@ mod macros {
         }
     }
 }
+
+pub mod vector;
+#[cfg(feature = "sized")]
+pub mod vector_sized;
 
 /// Marker trait to for anything that can be put in a vector
 pub trait InVector: Copy {}

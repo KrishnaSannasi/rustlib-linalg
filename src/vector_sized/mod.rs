@@ -1,7 +1,6 @@
 pub extern crate typenum;
+pub extern crate generic_array;
 
-use self::typenum::Unsigned;
-use std::marker::PhantomData;
 #[macro_use]
 pub mod vector_impl;
 pub mod vector_impl_spec;
@@ -12,24 +11,13 @@ pub mod iter;
 #[cfg(test)]
 mod tests;
 
+use self::generic_array::{GenericArray, ArrayLength};
+
 use super::InVector;
 
+// Generic array will be changed to [T; N] when const generic numerics comes to nightly
 #[derive(Clone, PartialEq)]
-pub struct Vector<T, N>
-    where T: InVector,
-          N: Unsigned {
-    // Vec will be changed to [T; N] when const generic numerics comes to nightly
-    value: Vec<T>,
-    // *const S, so drop checker knows that Vector does not own a value of S
-    phantom: PhantomData<*const N>
-}
+pub struct Vector<T: InVector, N: ArrayLength<T>>(pub GenericArray<T, N>);
 
 #[derive(Debug)]
 pub struct TryFromVectorError(String);
-
-impl <T: InVector, N: Unsigned> Vector<T, N> {
-    // for internal use where the size is gaurenteed to be correct
-    fn make(value: Vec<T>) -> Self {
-        Self { value, phantom: PhantomData }
-    }
-}
