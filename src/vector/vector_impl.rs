@@ -1,5 +1,6 @@
 use super::{Vector, InVector};
 
+use std::prelude::v1::*;
 use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use std::hash::{Hash, Hasher};
 use std::slice::SliceIndex;

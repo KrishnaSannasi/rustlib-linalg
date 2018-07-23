@@ -1,6 +1,7 @@
-use std::ops::*;
-
 use super::{Vector, InVector};
+
+use std::prelude::v1::*;
+use std::ops::*;
 
 macro_rules! impl_op {
     (build => $func:ident, $op:tt, $RHS:ty) => {

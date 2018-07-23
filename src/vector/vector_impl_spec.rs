@@ -1,7 +1,9 @@
+use super::Vector;
+
+use std::prelude::v1::*;
 use std::convert::TryInto;
 use std::fmt::Debug;
 
-use super::Vector;
 use ::{InVector, UpdateWith};
 
 macro_rules! count {

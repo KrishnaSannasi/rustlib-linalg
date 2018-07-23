@@ -1,3 +1,6 @@
+#[cfg(feature = "no_std")]
+use core::ops::*;
+#[cfg(not(feature = "no_std"))]
 use std::ops::*;
 
 use super::{Vector, InVector};

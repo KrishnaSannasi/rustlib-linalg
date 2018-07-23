@@ -1,8 +1,19 @@
 #![feature(try_from, specialization)]
+#![no_std]
+
+#[cfg(not(feature = "no_std"))]
+#[macro_use]
+extern crate std;
 
 extern crate rand;
 extern crate num;
 extern crate serde;
+
+#[cfg(feature = "no_std")]
+use core::iter::{Iterator, ExactSizeIterator, IntoIterator};
+#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "sized")]
+use std::iter::{Iterator, ExactSizeIterator, IntoIterator};
 
 #[macro_use]
 mod macros {
@@ -17,8 +28,9 @@ mod macros {
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 pub mod vector;
-#[cfg(feature = "sized")]
+#[cfg(any(feature = "sized", feature = "no_std"))]
 pub mod vector_sized;
 
 /// Marker trait to for anything that can be put in a vector
@@ -29,8 +41,9 @@ pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
 macro_rules! specialize {
     (gen => $sized_name_gen:ident, $name_gen:ident, $type:ty) => {
         impl InVector for $type {}
-        #[cfg(feature = "sized")]
+        #[cfg(any(feature = "sized", feature = "no_std"))]
         pub type $sized_name_gen<S> = vector_sized::Vector<$type, S>;
+        #[cfg(not(feature = "no_std"))]
         pub type $name_gen = vector::Vector<$type>;
     };
 }

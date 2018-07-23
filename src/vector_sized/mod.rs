@@ -20,4 +20,5 @@ use super::InVector;
 pub struct Vector<T: InVector, N: ArrayLength<T>>(pub GenericArray<T, N>);
 
 #[derive(Debug)]
-pub struct TryFromVectorError(String);
+pub struct TryFromVectorError;
+

@@ -1,6 +1,9 @@
 use super::Vector;
 use super::generic_array::ArrayLength;
 
+#[cfg(feature = "no_std")]
+use core::ops::*;
+#[cfg(not(feature = "no_std"))]
 use std::ops::*;
 use num::complex::Complex;
 

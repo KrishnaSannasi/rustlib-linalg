@@ -7,6 +7,7 @@ pub mod iter;
 mod tests;
 
 use super::InVector;
+use std::prelude::v1::*;
 
 #[derive(Clone, PartialEq)]
 pub struct Vector<T>

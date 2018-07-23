@@ -1,5 +1,9 @@
 use super::{Vector, InVector};
-use std::convert::From;
+
+#[cfg(feature = "no_std")]
+use core::{convert::From, ptr::read, mem::forget};
+#[cfg(not(feature = "no_std"))]
+use std::{convert::From, ptr::read, mem::forget};
 
 use vector_sized::typenum::*;
 use super::generic_array::GenericArray;
@@ -8,8 +12,8 @@ use ::UpdateWith;
 #[inline]
 #[doc(hidden)]
 pub unsafe fn transmute<A, B>(a: A) -> B {
-    let b = ::std::ptr::read(&a as *const A as *const B);
-    ::std::mem::forget(a);
+    let b = read(&a as *const A as *const B);
+    forget(a);
     b
 }
 
@@ -30,7 +34,6 @@ macro_rules! rm {
     };
 }
 
-use std::fmt::Debug;
 macro_rules! vector_create {
     ($(<- $do_tuple:tt ->)* $size:ident $(,$var_name: ident)*) => {
         impl<T: InVector> Vector<T, $size> {
@@ -45,10 +48,8 @@ macro_rules! vector_create {
             }
         }
 
-        impl<T: InVector + Debug> Into<[T; count!($($var_name)*)]> for Vector<T, $size> {
+        impl<T: InVector> Into<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn into(self) -> [T; count!($($var_name)*)] {
-                use std::mem::forget;
-                
                 let slice = &*self.0 as *const [T] as *const [T; count!($($var_name)*)];
                 let array = unsafe { *slice };
                 forget(self.0);

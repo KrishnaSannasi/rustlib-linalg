@@ -1,34 +1,78 @@
 use super::{Vector, InVector, TryFromVectorError};
 use super::typenum::marker_traits::NonZero;
 
-use std::ops::{Add, Sub, Mul, Deref, DerefMut};
-use std::convert::{TryFrom, Into};
-use std::hash::{Hash, Hasher};
-use std::cmp::Eq;
-use std::error;
-use std::fmt;
+#[cfg(feature = "no_std")]
+use core::{
+    ops::{Add, Sub, Mul, Deref, DerefMut},
+    convert::{TryFrom, Into},
+    hash::{Hash, Hasher},
+    cmp::Eq,
+    fmt
+};
+#[cfg(not(feature = "no_std"))]
+use std::{
+    vec::Vec,
+    ops::{Add, Sub, Mul, Deref, DerefMut},
+    convert::{TryFrom, Into},
+    hash::{Hash, Hasher},
+    cmp::Eq,
+    fmt
+};
 
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
 use super::generic_array::{GenericArray, ArrayLength};
 
-use serde::{Serialize, Deserialize, Serializer, Deserializer, de::Error};
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 #[macro_export]
 macro_rules! vector {
-    [$vec:expr] => {
-        {
-            use std::convert::TryFrom;
-            Vector::try_from($vec).unwrap()
-        }
-    };
     [$($e: expr),*] => {
-        vector![vec![$($e),*]]
+        Vector(GenericArray::from([$($e),*]))
     };
-    [$e: expr;$c: expr] => {
-        vector![vec![$e;$c]]
-    }
+    [$e:expr; $c:expr] => {{
+        struct Iter<T: Clone> {
+            val: T,
+            count: usize
+        }
+
+        impl<T: Clone> $crate::Iterator for Iter<T> {
+            type Item = T;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.count > 0 {
+                    self.count -= 1;
+                    Some(self.val.clone())
+                } else {
+                    None
+                }
+            }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                (self.count, Some(self.count))
+            }
+        }
+
+        impl<T: Clone> $crate::ExactSizeIterator for Iter<T> {
+            fn len(&self) -> usize {
+                self.count
+            }
+        }
+
+        struct IntoIter<T: Clone>(T, usize);
+
+        impl<T: Clone> $crate::IntoIterator for IntoIter<T> {
+            type Item = T;
+            type IntoIter = Iter<T>;
+
+            fn into_iter(self) -> Self::IntoIter {
+                Iter { val: self.0, count: self.1 }
+            }
+        }
+
+        Vector(GenericArray::from_exact_iter(IntoIter($e, $c)).unwrap())
+    }}
 }
 
 use super::typenum::{IsGreater, Diff, U1, U2};
@@ -72,7 +116,7 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     /// creates a vector of 0.0s
     pub fn new() -> Self
     where T: Zero {
-        Vector(GenericArray::clone_from_slice(&vec![T::zero(); N::to_usize()]))
+        vector![T::zero(); N::to_usize()]
     }
 
     /// get the dimension of the vector
@@ -114,17 +158,17 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     /// creates a random unit vector
     pub fn rand() -> Self
     where T: Rand + Float, N: NonZero {
-        let mut vec = Vec::new();
+        let mut vec = Self::new();
         let mut rng = thread_rng();
         let one = T::one();
         let two = one + one;
         
-        for _ in 0..N::to_usize() {
+        for i in 0..N::to_usize() {
             let v: T = rng.gen();
-            vec.push(v * two - one);
+            vec[i] = v * two - one;
         }
 
-        Self::try_from(vec).unwrap().norm()
+        vec.norm()
     }
 }
 
@@ -154,13 +198,7 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N>
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(&self, value: T) -> Self {
-        let mut vec = Vec::new();
-
-        for i in self.iter() {
-            vec.push(*i + value);
-        }
-
-        Self::try_from(vec).unwrap()
+        self.map(|x| *x + value)
     }
 
     /// sums up the elements of the vector
@@ -195,11 +233,9 @@ impl<T: InVector, N: ArrayLength<T>> From<GenericArray<T, N>> for Vector<T, N> {
 
 impl fmt::Display for TryFromVectorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "Invalid Length")
     }
 }
-
-impl error::Error for TryFromVectorError {}
 
 impl<'a, T: InVector, N: ArrayLength<T>> TryFrom<&'a [T]> for Vector<T, N> {
     type Error = TryFromVectorError;
@@ -209,11 +245,12 @@ impl<'a, T: InVector, N: ArrayLength<T>> TryFrom<&'a [T]> for Vector<T, N> {
         if value.len() == N::to_usize() {
             Ok(Vector(GenericArray::clone_from_slice(value)))
         } else {
-            Err(TryFromVectorError(format!("the input's size {}, does not match the type size {}", value.len(), N::to_usize())))
+            Err(TryFromVectorError)
         }
     }
 }
 
+#[cfg(not(feature = "no_std"))]
 impl<T: InVector, N: ArrayLength<T>> TryFrom<Vec<T>> for Vector<T, N> {
     type Error = TryFromVectorError;
 
@@ -239,8 +276,7 @@ impl<T: InVector, N: ArrayLength<T>> DerefMut for Vector<T, N> {
 
 impl<T: InVector + Sized + fmt::Debug, N: ArrayLength<T>> fmt::Debug for Vector<T, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ret = format!("{:?}", self.0);
-        write!(f, "<{}>", &ret[1..ret.len()-1])
+        write!(f, "{:?}", self.0)
     }
 }
 
@@ -251,17 +287,11 @@ impl<T: InVector + Sized + Serialize, N: ArrayLength<T>> Serialize for Vector<T,
     }
 }
 
-impl<'de, T: InVector + Sized + Deserialize<'de>, N: ArrayLength<T>> Deserialize<'de> for Vector<T, N> {
+impl<'de, T: InVector + Default + Deserialize<'de>, N: ArrayLength<T>> Deserialize<'de> for Vector<T, N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: Deserializer<'de> {
-        let vec: Vec<T> = <Vec<T> as Deserialize<'de>>::deserialize(deserializer)?;
-        let error = Error::invalid_length(vec.len(), &&*format!("expected {}", N::to_usize()));
-
-        if vec.len() == N::to_usize() {
-            Self::try_from(vec).map_err(|_| error)
-        } else {
-            Err(error)
-        }
+        let arr: GenericArray<T, N> = <GenericArray<T, N> as Deserialize<'de>>::deserialize(deserializer)?;
+        Ok(Vector(arr))
     }
 }
 

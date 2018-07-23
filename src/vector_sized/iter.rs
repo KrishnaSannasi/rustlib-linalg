@@ -1,6 +1,9 @@
 use super::{Vector, InVector};
 use super::generic_array::ArrayLength;
 
+#[cfg(feature = "no_std")]
+use core::iter::Iterator;
+#[cfg(not(feature = "no_std"))]
 use std::iter::Iterator;
 use super::generic_array::GenericArrayIter;
 
