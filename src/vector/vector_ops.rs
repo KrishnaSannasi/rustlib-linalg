@@ -4,52 +4,32 @@ use std::prelude::v1::*;
 use std::ops::*;
 
 macro_rules! impl_op {
-    (build => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(self, rhs: $RHS) -> Self::Output {
-            Vector { value: self.value.iter()
-                                      .map(|&i| i $op rhs)
-                                      .collect::<Vec<O>>() }
-        }
-    };
-    (build bin => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(self, rhs: $RHS) -> Self::Output {
-            assert!(self.dim() == rhs.dim());
-            Vector { value: self.value.iter()
-                                      .zip(rhs.value.iter())
-                                      .map(|(&i, &j)| i $op j)
-                                      .collect::<Vec<O>>() }
-        }
-    };
     (build assign => $func:ident, $op:tt, $RHS:ty) => {
         default fn $func(&mut self, rhs: $RHS) {
             self.value.iter_mut()
                       .for_each(|a| *a $op rhs);
         }
     };
-    (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(&mut self, rhs: $RHS) {
-            assert!(self.dim() == rhs.dim());
-            self.value.iter_mut()
-                      .zip(rhs.value.iter())
-                      .for_each(|(a, b)| *a $op *b);
-        }
-    };
     (own => $Op:ident, $func:ident, $op:tt) => {
-        impl<T, U, O> $Op<U> for Vector<T>
+        impl<T, U: Clone, O> $Op<U> for Vector<T>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build => $func, $op, U);
+            default fn $func(self, rhs: U) -> Self::Output {
+                self.map(|i| i.$func(rhs.clone()))
+            }
         }
     };
     (borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U, O> $Op<U> for &'a Vector<T>
+        impl<'a, T: Clone, U: Clone, O> $Op<U> for &'a Vector<T>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build => $func, $op, U);
+            default fn $func(self, rhs: U) -> Self::Output {
+                self.map_ref(|i| i.clone().$func(rhs.clone()))
+            }
         }
     };
     (own, own => $Op:ident, $func:ident, $op:tt) => {
@@ -58,62 +38,110 @@ macro_rules! impl_op {
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build bin => $func, $op, Vector<U>);
+            default fn $func(self, rhs: Vector<U>) -> Self::Output {
+                assert!(self.dim() == rhs.dim());
+                Vector { value: self.value.into_iter()
+                                          .zip(rhs.value.into_iter())
+                                          .map(|(i, j)| i.$func(j))
+                                          .collect() }
+            }
         }
     };
     (own, borrow => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, T, U, O> $Op<&'a Vector<U>> for Vector<T>
-            where T: InVector + $Op<U, Output = O>,
+            where T: InVector + $Op<&'a U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build bin => $func, $op, &'a Vector<U>);
+            default fn $func(self, rhs: &'a Vector<U>) -> Self::Output {
+                assert!(self.dim() == rhs.dim());
+                Vector { value: self.value.into_iter()
+                                          .zip(rhs.value.iter())
+                                          .map(|(i, j)| i.$func(j.clone()))
+                                          .collect() }
+            }
         }
     };
     (borrow, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U, O> $Op<Vector<U>> for &'a Vector<T>
+        impl<'a, T: Clone, U, O> $Op<Vector<U>> for &'a Vector<T>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build bin => $func, $op, Vector<U>);
+            default fn $func(self, rhs: Vector<U>) -> Self::Output {
+                assert!(self.dim() == rhs.dim());
+                Vector { value: self.value.iter()
+                                          .zip(rhs.value.into_iter())
+                                          .map(|(i, j)| i.clone().$func(j))
+                                          .collect() }
+            }
         }
     };
     (borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U, O> $Op<&'a Vector<U>> for &'a Vector<T>
+        impl<'a, T: Clone, U: Clone, O> $Op<&'a Vector<U>> for &'a Vector<T>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
-            impl_op!(build bin => $func, $op, &'a Vector<U>);
+            default fn $func(self, rhs: &'a Vector<U>) -> Self::Output {
+                assert!(self.dim() == rhs.dim());
+                Vector { value: self.value.iter()
+                                          .zip(rhs.value.iter())
+                                          .map(|(i, j)| i.clone().$func(j.clone()))
+                                          .collect() }
+            }
         }
     };
     (assign, own, own => $Op:ident, $func:ident, $op:tt) => {
         impl<T, U> $Op<Vector<U>> for Vector<T>
             where T: InVector + $Op<U>,
                   U: InVector {
-            impl_op!(build bin assign => $func, $op, Vector<U>);
+            
+            default fn $func(&mut self, rhs: Vector<U>) {
+                assert!(self.dim() == rhs.dim());
+                self.value.iter_mut()
+                        .zip(rhs.value.into_iter())
+                        .for_each(|(a, b)| a.$func(b));
+            }
         }
     };
     (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U> $Op<&'a Vector<U>> for Vector<T>
+        impl<'a, T, U: Clone> $Op<&'a Vector<U>> for Vector<T>
             where T: InVector + $Op<U>,
                   U: InVector {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U>);
+            
+            default fn $func(&mut self, rhs: &'a Vector<U>) {
+                assert!(self.dim() == rhs.dim());
+                self.value.iter_mut()
+                        .zip(rhs.value.iter())
+                        .for_each(|(a, b)| a.$func(b.clone()));
+            }
         }
     };
     (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, T, U> $Op<Vector<U>> for &'a mut Vector<T>
             where T: InVector + $Op<U>,
                   U: InVector {
-            impl_op!(build bin assign => $func, $op, Vector<U>);
+            
+            default fn $func(&mut self, rhs: Vector<U>) {
+                assert!(self.dim() == rhs.dim());
+                self.value.iter_mut()
+                        .zip(rhs.value.into_iter())
+                        .for_each(|(a, b)| a.$func(b));
+            }
         }
     };
     (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U> $Op<&'a Vector<U>> for &'a mut Vector<T>
+        impl<'a, T, U: Clone> $Op<&'a Vector<U>> for &'a mut Vector<T>
             where T: InVector + $Op<U>,
                   U: InVector {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U>);
+            
+            default fn $func(&mut self, rhs: &'a Vector<U>) {
+                assert!(self.dim() == rhs.dim());
+                self.value.iter_mut()
+                        .zip(rhs.value.iter())
+                        .for_each(|(a, b)| a.$func(b.clone()));
+            }
         }
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt) => {
@@ -172,27 +200,31 @@ impl_op!(op => Div, div, / => borrow);
 impl<T: InVector, O: InVector> Neg for Vector<T>
 where T: Neg<Output = O> {
     type Output = Vector<O>;
-    default fn neg(self) -> Self::Output { -&self }
+    default fn neg(self) -> Self::Output {
+        self.map(|x| -x)
+    }
 }
 
-impl<'a, T: InVector, O: InVector> Neg for &'a Vector<T>
+impl<'a, T: InVector + Clone, O: InVector> Neg for &'a Vector<T>
 where T: Neg<Output = O> {
     type Output = Vector<O>;
     fn neg(self) -> Self::Output {
-        self.map(|&x| -x)
+        self.map_ref(|x| -x.clone())
     }
 }
 
 impl<T: InVector, O: InVector> Not for Vector<T>
 where T: Not<Output = O> {
     type Output = Vector<O>;
-    default fn not(self) -> Self::Output { !&self }
+    default fn not(self) -> Self::Output {
+        self.map(|x| !x)
+    }
 }
 
-impl<'a, T: InVector, O: InVector> Not for &'a Vector<T>
+impl<'a, T: InVector + Clone, O: InVector> Not for &'a Vector<T>
 where T: Not<Output = O> {
     type Output = Vector<O>;
     fn not(self) -> Self::Output {
-        self.map(|&x| !x)
+        self.map_ref(|x| !x.clone())
     }
 }

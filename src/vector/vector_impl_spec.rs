@@ -2,7 +2,6 @@ use super::Vector;
 
 use std::prelude::v1::*;
 use std::convert::TryInto;
-use std::fmt::Debug;
 
 use ::{InVector, UpdateWith};
 
@@ -25,7 +24,7 @@ macro_rules! rm {
 
 macro_rules! vector_create {
     ($($var_name: ident),*) => {
-        impl<T: InVector + Debug> TryInto<[T; count!($($var_name)*)]> for Vector<T> {
+        impl<T: InVector> TryInto<[T; count!($($var_name)*)]> for Vector<T> {
             type Error = Self;
 
             fn try_into(self) -> Result<[T; count!($($var_name)*)], Self::Error> {
@@ -33,7 +32,7 @@ macro_rules! vector_create {
 
                 if self.dim() == count!($($var_name)*) {
                     let slice = &*self.value as *const [T] as *const [T; count!($($var_name)*)];
-                    let array = unsafe { *slice };
+                    let array = unsafe { slice.read() };
                     forget(self.value);
 
                     Ok(array)

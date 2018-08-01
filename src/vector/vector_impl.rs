@@ -19,28 +19,28 @@ pub type Result<T> = result::Result<T, String>;
 // convienience accessors methods for common vector usages
 impl<T: InVector> Vector<T> {
     // extracts the first element of the vector, equivalent to vector[0]
-    pub fn x(&self) -> T {
-        self.value[0]
+    pub fn x(&self) -> &T {
+        &self.value[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
-    pub fn y(&self) -> T {
-        self.value[1]
+    pub fn y(&self) -> &T {
+        &self.value[1]
     }
     
     // extracts the third element of the vector, equivalent to vector[2]
-    pub fn z(&self) -> T {
-        self.value[2]
+    pub fn z(&self) -> &T {
+        &self.value[2]
     }
     
     // extracts the first element of the vector, equivalent to vector[0]
-    pub fn r(&self) -> T {
-        self.value[0]
+    pub fn r(&self) -> &T {
+        &self.value[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
-    pub fn theta(&self) -> T {
-        self.value[1]
+    pub fn theta(&self) -> &T {
+        &self.value[1]
     }
 }
 
@@ -49,7 +49,7 @@ impl<T: InVector> Vector<T> {
     pub fn new(dim: usize) -> Self
     where T: Zero {
         Vector {
-            value: vec![T::zero(); dim],
+            value: (0..dim).map(|_| T::zero()).collect(),
         }
     }
 
@@ -59,29 +59,35 @@ impl<T: InVector> Vector<T> {
     }
 
     /// conversion functions between different vector types (if the type implements from)
-    pub fn into<U>(&self) -> Vector<U>
+    pub fn into<U>(self) -> Vector<U>
         where U: InVector,
               T: Into<U>  {
-        self.map(|&x| x.clone().into())
+        self.map(|x| x.into())
     }
 
     /// maps the vector's component's according to the function provided
-    pub fn map<U: InVector, F>(&self, f: F) -> Vector<U>
+    pub fn map<U: InVector, F>(self, f: F) -> Vector<U>
+        where F: Fn(T) -> U {
+        Vector { value: self.value.into_iter().map(f).collect::<Vec<U>>() }
+    }
+
+    /// maps the vector's component's according to the function provided
+    pub fn map_ref<U: InVector, F>(&self, f: F) -> Vector<U>
         where F: Fn(&T) -> U {
         Vector { value: self.value.iter().map(f).collect::<Vec<U>>() }
     }
 
     /// the square of the magnitude
     pub fn magsq(&self) -> T
-        where T: Zero + Mul<Output = T> {
+        where T: Clone + Zero + Mul<Output = T> {
         self.dot(self)
     }
 
     /// takes the dot product of the two vectors
     pub fn dot<U, O>(&self, other: &Vector<U>) -> O
-    where U: InVector,
-          O: InVector + Zero,
-          T: InVector + Mul<U, Output = O> {
+    where T: InVector + Clone + Mul<U, Output = O>,
+          U: InVector + Clone,
+          O: InVector + Zero {
         (self * other).sum()
     }
 
@@ -127,41 +133,43 @@ impl<T: InVector> Vector<T>
 impl<T: InVector> Vector<T> 
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
-    pub fn shift(&self, value: T) -> Self {
-        let mut vec = Vec::new();
-
-        for i in self.value.iter() {
-            vec.push(*i + value);
-        }
-
-        Self { value: vec }
+    pub fn shift(mut self, value: T) -> Self
+    where T: Clone {
+        self.iter_mut().for_each(|i| {
+            let mut out = unsafe { ::std::mem::uninitialized() };
+            ::std::mem::swap(i, &mut out);
+            let mut sum = out + value.clone();
+            ::std::mem::swap(i, &mut sum);
+            ::std::mem::forget(sum);
+        });
+        self
     }
 
     /// sums up the elements of the vector
-    pub fn sum(&self) -> T
+    pub fn sum(self) -> T
     where T: Zero {
-        self.value.iter().fold(T::zero(), |acc, &x| acc + x)
+        self.value.into_iter().fold(T::zero(), |acc, x| acc + x)
     }
 }
 
 impl<T: InVector> Vector<T> 
 where T: Mul<Output = T> + One {
     /// sums up the elements of the vector
-    pub fn product(&self) -> T {
-        self.value.iter().fold(T::one(), |acc, &x| acc * x)
+    pub fn product(self) -> T {
+        self.value.into_iter().fold(T::one(), |acc, x| acc * x)
     }
 }
 
-impl<T: InVector> Vector<T> 
+impl<T: InVector + Clone> Vector<T> 
     where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
     pub fn lerp(&self, other: &Vector<T>, w: T) -> Self {
-        self * (T::one() - w) + other * w
+        self * (T::one() - w.clone()) + other * w
     }
 }
 
 // traits
-impl<'a, T: InVector> From<&'a [T]> for Vector<T> {
+impl<'a, T: InVector + Clone> From<&'a [T]> for Vector<T> {
     fn from(slice: &'a [T]) -> Self {
         Self::from(<Vec<T>>::from(slice))
     }
