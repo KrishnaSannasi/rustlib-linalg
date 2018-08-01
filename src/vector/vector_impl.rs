@@ -160,6 +160,29 @@ where T: Mul<Output = T> + One {
     }
 }
 
+impl<T: InVector> Vector<T>  {
+    /// adds the shift value to all the elements in a vector
+    pub fn shift_ref(&self, value: T) -> Self
+    where T: Clone,
+          for<'a> &'a T: Add<T, Output = T> {
+        self.map_ref(|i| i + value.clone())
+    }
+
+    /// sums up the elements of the vector
+    pub fn sum_ref(&self) -> T
+    where T: Zero,
+          for<'a> &'a T: Add<T, Output = T> {
+        self.iter().fold(T::zero(), |acc, x| x + acc)
+    }
+
+    /// multiplies up the elements of the vector
+    pub fn product_ref(&self) -> T
+    where T: One,
+          for<'a> &'a T: Mul<T, Output = T> {
+        self.iter().fold(T::one(), |acc, x| x * acc)
+    }
+}
+
 impl<T: InVector + Clone> Vector<T> 
     where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors

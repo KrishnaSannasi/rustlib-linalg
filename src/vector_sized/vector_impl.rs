@@ -215,14 +215,15 @@ where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(mut self, value: T) -> Self
     where T: Clone {
+        use self::mem::{uninitialized, swap, forget};
         self.iter_mut().for_each(|i| {
-            let mut out = unsafe { self::mem::uninitialized() };
-            self::mem::swap(i, &mut out);
+            let mut out = unsafe { uninitialized() };
+            swap(i, &mut out);
             
             let mut sum = out + value.clone();
 
-            self::mem::swap(i, &mut sum);
-            self::mem::forget(sum);
+            swap(i, &mut sum);
+            forget(sum);
         });
         self
     }
@@ -236,9 +237,32 @@ where T: Add<Output = T> {
 
 impl<T: InVector, N: ArrayLength<T>> Vector<T, N> 
 where T: Mul<Output = T> + One {
-    /// sums up the elements of the vector
+    /// multiplies up the elements of the vector
     pub fn product(self) -> T {
         self.into_iter().fold(T::one(), |acc, x| acc * x)
+    }
+}
+
+impl<T: InVector, N: ArrayLength<T>> Vector<T, N>  {
+    /// adds the shift value to all the elements in a vector
+    pub fn shift_ref(&self, value: T) -> Self
+    where T: Clone,
+          for<'a> &'a T: Add<T, Output = T> {
+        self.map_ref(|i| i + value.clone())
+    }
+
+    /// sums up the elements of the vector
+    pub fn sum_ref(&self) -> T
+    where T: Zero,
+          for<'a> &'a T: Add<T, Output = T> {
+        self.iter().fold(T::zero(), |acc, x| x + acc)
+    }
+
+    /// multiplies up the elements of the vector
+    pub fn product_ref(&self) -> T
+    where T: One,
+          for<'a> &'a T: Mul<T, Output = T> {
+        self.iter().fold(T::one(), |acc, x| x * acc)
     }
 }
 

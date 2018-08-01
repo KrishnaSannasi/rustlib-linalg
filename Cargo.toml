@@ -1,6 +1,6 @@
 [package]
 name = "linear-algebra"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Ozaren <krishna.sd.2012@gmail.com>"]
 
 [features]
