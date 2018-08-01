@@ -34,7 +34,7 @@ pub mod vector;
 pub mod vector_sized;
 
 /// Marker trait to for anything that can be put in a vector
-pub trait InVector: Copy {}
+pub trait InVector {}
 
 pub trait UpdateWith<T> { fn update_with(&mut self, t: T); }
 
