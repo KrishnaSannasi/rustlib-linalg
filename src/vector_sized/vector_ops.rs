@@ -4,56 +4,32 @@ use core::ops::*;
 use std::ops::*;
 
 use super::{Vector, InVector};
-use super::generic_array::{GenericArray, ArrayLength};
+use super::generic_array::ArrayLength;
 
 macro_rules! impl_op {
-    (build => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(self, rhs: $RHS) -> Self::Output {
-            self.iter()
-                      .map(|&i| i $op rhs)
-                      .collect::<GenericArray<_, _>>()
-                      .into()
-        }
-    };
-    (build bin => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(self, rhs: $RHS) -> Self::Output {
-            self.iter()
-                      .zip(rhs.iter())
-                      .map(|(&i, &j)| i $op j)
-                      .collect::<GenericArray<_, _>>()
-                      .into()
-        }
-    };
-    (build assign => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(&mut self, rhs: $RHS) {
-            for i in 0..N::to_usize() {
-                self[i] $op rhs;
-            }
-        }
-    };
     (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(&mut self, rhs: $RHS) {
-            for i in 0..N::to_usize() {
-                self[i] $op rhs[i];
-            }
-        }
+        
     };
     (own => $Op:ident, $func:ident, $op:tt) => {
-        impl<N, T, U, O> $Op<U> for Vector<T, N>
+        impl<N, T, U: Clone, O> $Op<U> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector, N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
-
-            impl_op!(build => $func, $op, U);
+        
+            default fn $func(self, rhs: U) -> Self::Output {
+                self.map(|i| i.$func(rhs.clone()))
+            }
         }
     };
     (borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U, O> $Op<U> for &'a Vector<T, N>
+        impl<'a, N, T: Clone, U: Clone, O> $Op<U> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector, N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
-
-            impl_op!(build => $func, $op, U);
+        
+            default fn $func(self, rhs: U) -> Self::Output {
+                self.map_ref(|i| i.clone().$func(rhs.clone()))
+            }
         }
     };
     (own, own => $Op:ident, $func:ident, $op:tt) => {
@@ -63,65 +39,105 @@ macro_rules! impl_op {
                   N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, Vector<U, N>);
+            default fn $func(self, rhs: Vector<U, N>) -> Self::Output {
+                Vector(self.into_iter()
+                           .zip(rhs.into_iter())
+                           .map(|(i, j)| i.$func(j))
+                           .collect())
+            }
         }
     };
     (own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for Vector<T, N>
+        impl<'a, N, T, U: Clone, O> $Op<&'a Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector,
                   N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, &'a Vector<U, N>);
+            default fn $func(self, rhs: &'a Vector<U, N>) -> Self::Output {
+                Vector(self.into_iter()
+                           .zip(rhs.iter())
+                           .map(|(i, j)| i.$func(j.clone()))
+                           .collect())
+            }
         }
     };
     (borrow, own => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U, O> $Op<Vector<U, N>> for &'a Vector<T, N>
+        impl<'a, N, T: Clone, U, O> $Op<Vector<U, N>> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector,
                   N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, Vector<U, N>);
+            default fn $func(self, rhs: Vector<U, N>) -> Self::Output {
+                Vector(self.iter()
+                           .zip(rhs.into_iter())
+                           .map(|(i, j)| i.clone().$func(j))
+                           .collect())
+            }
         }
     };
     (borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U, O> $Op<&'a Vector<U, N>> for &'a Vector<T, N>
+        impl<'a, N, T: Clone, U: Clone, O> $Op<&'a Vector<U, N>> for &'a Vector<T, N>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector,
                   N: ArrayLength<T> + ArrayLength<U> + ArrayLength<O> {
             type Output = Vector<O, N>;
 
-            impl_op!(build bin => $func, $op, &'a Vector<U, N>);
+            default fn $func(self, rhs: &'a Vector<U, N>) -> Self::Output {
+                Vector(self.iter()
+                           .zip(rhs.iter())
+                           .map(|(i, j)| i.clone().$func(j.clone()))
+                           .collect())
+            }
         }
     };
     (assign, own, own => $Op:ident, $func:ident, $op:tt) => {
         impl<N, T, U> $Op<Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U>,
                   U: InVector, N: ArrayLength<T> + ArrayLength<U> {
-            impl_op!(build bin assign => $func, $op, Vector<U, N>);
+            
+            default fn $func(&mut self, rhs: Vector<U, N>) {
+                self.iter_mut()
+                    .zip(rhs.into_iter())
+                    .for_each(|(i, j)| i.$func(j))
+            }
         }
     };
     (assign, own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U> $Op<&'a Vector<U, N>> for Vector<T, N>
+        impl<'a, N, T, U: Clone> $Op<&'a Vector<U, N>> for Vector<T, N>
             where T: InVector + $Op<U>,
                   U: InVector, N: ArrayLength<T> + ArrayLength<U> {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
+            
+            default fn $func(&mut self, rhs: &'a Vector<U, N>) {
+                self.iter_mut()
+                    .zip(rhs.iter())
+                    .for_each(|(i, j)| i.$func(j.clone()))
+            }
         }
     };
     (assign, borrow, own => $Op:ident, $func:ident, $op:tt) => {
         impl<'a, N, T, U> $Op<Vector<U, N>> for &'a mut Vector<T, N>
             where T: InVector + $Op<U>,
                   U: InVector, N: ArrayLength<T> + ArrayLength<U> {
-            impl_op!(build bin assign => $func, $op, Vector<U, N>);
+            
+            default fn $func(&mut self, rhs: Vector<U, N>) {
+                self.iter_mut()
+                    .zip(rhs.into_iter())
+                    .for_each(|(i, j)| i.$func(j))
+            }
         }
     };
     (assign, borrow, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, N, T, U> $Op<&'a Vector<U, N>> for &'a mut Vector<T, N>
+        impl<'a, N, T, U: Clone> $Op<&'a Vector<U, N>> for &'a mut Vector<T, N>
             where T: InVector + $Op<U>,
                   U: InVector, N: ArrayLength<T> + ArrayLength<U> {
-            impl_op!(build bin assign => $func, $op, &'a Vector<U, N>);
+            
+            default fn $func(&mut self, rhs: &'a Vector<U, N>) {
+                self.iter_mut()
+                    .zip(rhs.iter())
+                    .for_each(|(i, j)| i.$func(j.clone()))
+            }
         }
     };
     (op => $Op:ident, $func:ident, $op:tt => $self_type:tt) => {
@@ -180,27 +196,35 @@ impl_op!(op => Div, div, / => borrow);
 impl<T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Neg for Vector<T, N>
 where T: Neg<Output = O> {
     type Output = Vector<O, N>;
-    default fn neg(self) -> Self::Output { -&self }
+
+    default fn neg(self) -> Self::Output {
+        self.map(|x| -x)
+    }
 }
 
-impl<'a, T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Neg for &'a Vector<T, N>
+impl<'a, T: InVector + Clone, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Neg for &'a Vector<T, N>
 where T: Neg<Output = O> {
     type Output = Vector<O, N>;
+
     fn neg(self) -> Self::Output {
-        self.map(|&x| -x)
+        self.map_ref(|x| -x.clone())
     }
 }
 
 impl<T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Not for Vector<T, N>
 where T: Not<Output = O> {
     type Output = Vector<O, N>;
-    default fn not(self) -> Self::Output { !&self }
+
+    default fn not(self) -> Self::Output {
+        self.map(|x| !x)
+    }
 }
 
-impl<'a, T: InVector, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Not for &'a Vector<T, N>
+impl<'a, T: InVector + Clone, N: ArrayLength<T> + ArrayLength<O>, O: InVector> Not for &'a Vector<T, N>
 where T: Not<Output = O> {
     type Output = Vector<O, N>;
+    
     fn not(self) -> Self::Output {
-        self.map(|&x| !x)
+        self.map_ref(|x| !x.clone())
     }
 }

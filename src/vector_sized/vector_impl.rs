@@ -7,7 +7,7 @@ use core::{
     convert::{TryFrom, Into},
     hash::{Hash, Hasher},
     cmp::Eq,
-    fmt
+    fmt, mem
 };
 #[cfg(not(feature = "no_std"))]
 use std::{
@@ -16,7 +16,7 @@ use std::{
     convert::{TryFrom, Into},
     hash::{Hash, Hasher},
     cmp::Eq,
-    fmt
+    fmt, mem
 };
 
 use rand::{Rng, Rand, thread_rng};
@@ -32,18 +32,18 @@ macro_rules! vector {
         Vector(GenericArray::from([$($e),*]))
     };
     [$e:expr; $c:expr] => {{
-        struct Iter<T: Clone> {
-            val: T,
+        struct Iter<MacroT> {
+            _val: MacroT,
             count: usize
         }
 
-        impl<T: Clone> $crate::Iterator for Iter<T> {
-            type Item = T;
+        impl<MacroT> $crate::Iterator for Iter<MacroT> {
+            type Item = MacroT;
 
             fn next(&mut self) -> Option<Self::Item> {
                 if self.count > 0 {
                     self.count -= 1;
-                    Some(self.val.clone())
+                    Some($e)
                 } else {
                     None
                 }
@@ -54,20 +54,20 @@ macro_rules! vector {
             }
         }
 
-        impl<T: Clone> $crate::ExactSizeIterator for Iter<T> {
+        impl<MacroT> $crate::ExactSizeIterator for Iter<MacroT> {
             fn len(&self) -> usize {
                 self.count
             }
         }
 
-        struct IntoIter<T: Clone>(T, usize);
+        struct IntoIter<MacroT>(MacroT, usize);
 
-        impl<T: Clone> $crate::IntoIterator for IntoIter<T> {
-            type Item = T;
-            type IntoIter = Iter<T>;
+        impl<MacroT> $crate::IntoIterator for IntoIter<MacroT> {
+            type Item = MacroT;
+            type IntoIter = Iter<MacroT>;
 
             fn into_iter(self) -> Self::IntoIter {
-                Iter { val: self.0, count: self.1 }
+                Iter { _val: self.0, count: self.1 }
             }
         }
 
@@ -80,35 +80,35 @@ use super::typenum::{IsGreater, Diff, U1, U2};
 // convienience accessors methods for common vector usages
 impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     // extracts the first element of the vector, equivalent to vector[0]
-    pub fn x(&self) -> T
+    pub fn x(&self) -> &T
     where N: NonZero {
-        self[0]
+        &self[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
-    pub fn y(&self) -> T
+    pub fn y(&self) -> &T
     where N: Sub<U1>,
           Diff<N, U1>: NonZero {
-        self[1]
+        &self[1]
     }
     
     // extracts the third element of the vector, equivalent to vector[2]
-    pub fn z(&self) -> T
+    pub fn z(&self) -> &T
     where N: Sub<U2>,
           Diff<N, U2>: NonZero {
-        self[2]
+        &self[2]
     }
     
     // extracts the first element of the vector, equivalent to vector[0]
-    pub fn r(&self) -> T
+    pub fn r(&self) -> &T
     where N: NonZero {
-        self[0]
+        &self[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
-    pub fn theta(&self) -> T
+    pub fn theta(&self) -> &T
     where N: IsGreater<U1> {
-        self[1]
+        &self[1]
     }
 }
 
@@ -116,7 +116,16 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     /// creates a vector of 0.0s
     pub fn new() -> Self
     where T: Zero {
-        vector![T::zero(); N::to_usize()]
+        use self::mem::{uninitialized, swap, forget};
+        let mut vec = vector![unsafe { uninitialized() }; N::to_usize()];
+
+        for i in 0..N::to_usize() {
+            let mut var = T::zero();
+            swap(&mut var, &mut vec[i]);
+            forget(var); // so that uninitialized mem does not drop
+        }
+
+        vec
     }
 
     /// get the dimension of the vector
@@ -125,15 +134,22 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     }
 
     /// conversion functions between different vector types (if the type implements from)
-    pub fn into<U>(&self) -> Vector<U, N>
+    pub fn into<U>(self) -> Vector<U, N>
         where U: InVector,
               T: Into<U>,
               N: ArrayLength<U>  {
-        self.map(|&x| x.clone().into())
+        self.map(|x| x.into())
     }
 
     /// maps the vector's component's according to the function provided
-    pub fn map<U: InVector, F>(&self, f: F) -> Vector<U, N>
+    pub fn map<U: InVector, F>(self, f: F) -> Vector<U, N>
+        where F: Fn(T) -> U,
+              N: ArrayLength<U> {
+        Vector(self.into_iter().map(f).collect())
+    }
+
+    /// maps the vector's component's according to the function provided
+    pub fn map_ref<U: InVector, F>(&self, f: F) -> Vector<U, N>
         where F: Fn(&T) -> U,
               N: ArrayLength<U> {
         Vector(self.iter().map(f).collect())
@@ -141,16 +157,16 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
 
     /// the square of the magnitude
     pub fn magsq(&self) -> T
-        where T: Zero + Mul<Output = T>,
+        where T: Zero + Clone + Mul<Output = T>,
               N: NonZero {
         self.dot(self)
     }
 
     /// takes the dot product of the two vectors
     pub fn dot<U, O>(&self, other: &Vector<U, N>) -> O
-    where U: InVector,
+    where U: InVector + Clone,
           O: InVector + Zero,
-          T: InVector + Mul<U, Output = O>,
+          T: InVector + Clone + Mul<U, Output = O>,
           N: ArrayLength<U> + ArrayLength<O> {
         (self * other).sum()
     }
@@ -197,30 +213,40 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N>
 impl<T: InVector, N: ArrayLength<T>> Vector<T, N> 
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
-    pub fn shift(&self, value: T) -> Self {
-        self.map(|x| *x + value)
+    pub fn shift(mut self, value: T) -> Self
+    where T: Clone {
+        self.iter_mut().for_each(|i| {
+            let mut out = unsafe { self::mem::uninitialized() };
+            self::mem::swap(i, &mut out);
+            
+            let mut sum = out + value.clone();
+
+            self::mem::swap(i, &mut sum);
+            self::mem::forget(sum);
+        });
+        self
     }
 
     /// sums up the elements of the vector
-    pub fn sum(&self) -> T
+    pub fn sum(self) -> T
     where T: Zero {
-        self.iter().fold(T::zero(), |acc, &x| acc + x)
+        self.into_iter().fold(T::zero(), |acc, x| acc + x)
     }
 }
 
 impl<T: InVector, N: ArrayLength<T>> Vector<T, N> 
 where T: Mul<Output = T> + One {
     /// sums up the elements of the vector
-    pub fn product(&self) -> T {
-        self.iter().fold(T::one(), |acc, &x| acc * x)
+    pub fn product(self) -> T {
+        self.into_iter().fold(T::one(), |acc, x| acc * x)
     }
 }
 
-impl<T: InVector, N: ArrayLength<T>> Vector<T, N> 
+impl<T: InVector + Clone, N: ArrayLength<T>> Vector<T, N> 
     where T: One + Add<Output = T> + Sub<Output = T> {
     /// linearly interpolates between two vectors
     pub fn lerp(&self, other: &Vector<T, N>, w: T) -> Self {
-        self * (T::one() - w) + other * w
+        self * (T::one() - w.clone()) + other * w
     }
 }
 
@@ -237,7 +263,7 @@ impl fmt::Display for TryFromVectorError {
     }
 }
 
-impl<'a, T: InVector, N: ArrayLength<T>> TryFrom<&'a [T]> for Vector<T, N> {
+impl<'a, T: InVector + Clone, N: ArrayLength<T>> TryFrom<&'a [T]> for Vector<T, N> {
     type Error = TryFromVectorError;
 
     // get a vector from a slice
@@ -251,7 +277,7 @@ impl<'a, T: InVector, N: ArrayLength<T>> TryFrom<&'a [T]> for Vector<T, N> {
 }
 
 #[cfg(not(feature = "no_std"))]
-impl<T: InVector, N: ArrayLength<T>> TryFrom<Vec<T>> for Vector<T, N> {
+impl<T: InVector + Clone, N: ArrayLength<T>> TryFrom<Vec<T>> for Vector<T, N> {
     type Error = TryFromVectorError;
 
     // get a vector from a vec

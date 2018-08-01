@@ -6,7 +6,6 @@ use core::{convert::From, ptr::read, mem::forget};
 use std::{convert::From, ptr::read, mem::forget};
 
 use vector_sized::typenum::*;
-use super::generic_array::GenericArray;
 use ::UpdateWith;
 
 #[inline]
@@ -44,14 +43,14 @@ macro_rules! vector_create {
 
         impl<T: InVector> From<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn from(arr: [T; count!($($var_name)*)]) -> Self {
-                Vector(GenericArray::clone_from_slice(&arr))
+                Vector(unsafe { transmute(arr) })
             }
         }
 
         impl<T: InVector> Into<[T; count!($($var_name)*)]> for Vector<T, $size> {
             fn into(self) -> [T; count!($($var_name)*)] {
                 let slice = &*self.0 as *const [T] as *const [T; count!($($var_name)*)];
-                let array = unsafe { *slice };
+                let array = unsafe { slice.read() };
                 forget(self.0);
 
                 array
