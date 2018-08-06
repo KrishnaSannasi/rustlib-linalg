@@ -1,16 +1,24 @@
 use super::{Vector, InVector};
 
-use std::prelude::v1::*;
-use std::ops::{Add, Sub, Mul, Index, IndexMut};
-use std::hash::{Hash, Hasher};
-use std::slice::SliceIndex;
-use std::convert::Into;
-use std::result;
+use std::{
+    vec::Vec,
+    ops::{Add, Sub, Mul, Deref, DerefMut},
+    convert::Into, mem
+};
 
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
-pub type Result<T> = result::Result<T, String>;
+#[macro_export]
+macro_rules! vectorize {
+    [$($e: expr),*] => ( Vector(vector![$($e)*]) );
+    [$e:expr; $c:expr] => {{
+        Vector(vector![$e; $c])
+    }};
+    [use $e:expr; $c:expr] => {{
+        Vector(::std::iter::repeat_with($e).take($c).collect())
+    }};
+}
 
 // convienience accessors methods for common vector usages
 impl<T: InVector> Vector<T> {
@@ -44,61 +52,76 @@ impl<T: InVector> Vector<T> {
     /// creates a vector of 0.0s
     pub fn new(dim: usize) -> Self
     where T: Zero {
-        Vector((0..dim).map(|_| T::zero()).collect())
+        use self::mem::{uninitialized, swap, forget};
+        let mut vec = vectorize![use || unsafe { uninitialized() }; dim];
+
+        for i in 0..dim {
+            let mut var = T::zero();
+            swap(&mut var, &mut vec[i]);
+            forget(var); // so that uninitialized mem does not drop
+        }
+
+        vec
     }
 
-    /// get the dimension of the vector
+    /// get the dimension (length) of the vector
     pub fn dim(&self) -> usize {
         self.0.len()
+    }
+    
+    /// gets value at index, and clones it. This is unnecessary if `T` is `Copy`.
+    pub fn get(&self, index: usize) -> T
+    where T: Clone {
+        self[index].clone()
     }
 
     /// conversion functions between different vector types (if the type implements from)
     pub fn into<U>(self) -> Vector<U>
         where U: InVector,
-              T: Into<U>  {
+              T: Into<U> {
         self.map(|x| x.into())
     }
 
     /// maps the vector's component's according to the function provided
     pub fn map<U: InVector, F>(self, f: F) -> Vector<U>
         where F: Fn(T) -> U {
-        Vector(self.into_iter().map(f).collect::<Vec<U>>())
+        Vector(self.into_iter().map(f).collect())
     }
 
     /// maps the vector's component's according to the function provided
     pub fn map_ref<U: InVector, F>(&self, f: F) -> Vector<U>
         where F: Fn(&T) -> U {
-        Vector(self.iter().map(f).collect::<Vec<U>>())
+        Vector(self.iter().map(f).collect())
     }
 
     /// the square of the magnitude
     pub fn magsq(&self) -> T
-        where T: Clone + Zero + Mul<Output = T> {
+        where T: Zero + Clone + Mul<Output = T> {
         self.dot(self)
     }
 
     /// takes the dot product of the two vectors
     pub fn dot<U, O>(&self, other: &Vector<U>) -> O
-    where T: InVector + Clone + Mul<U, Output = O>,
-          U: InVector + Clone,
-          O: InVector + Zero {
+    where U: InVector + Clone,
+          O: InVector + Zero,
+          T: InVector + Clone + Mul<U, Output = O> {
         (self * other).sum()
     }
 
     /// creates a random unit vector
     pub fn rand(dim: usize) -> Self
     where T: Rand + Float {
-        let mut value = Vec::new();
+        let mut vec = Self::new(dim);
         let mut rng = thread_rng();
         let one = T::one();
         let two = one + one;
         
-        for _ in 0..dim {
+        for i in 0..dim {
             let v: T = rng.gen();
-            value.push(v * two - one);
+            vec[i] = v * two - one;
         }
 
-        Vector(value).norm()
+        vec.norm()
     }
 }
 
@@ -129,12 +152,15 @@ where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
     pub fn shift(mut self, value: T) -> Self
     where T: Clone {
+        use self::mem::{uninitialized, swap, forget};
         self.iter_mut().for_each(|i| {
-            let mut out = unsafe { ::std::mem::uninitialized() };
-            ::std::mem::swap(i, &mut out);
+            let mut out = unsafe { uninitialized() };
+            swap(i, &mut out);
+            
             let mut sum = out + value.clone();
-            ::std::mem::swap(i, &mut sum);
-            ::std::mem::forget(sum);
+
+            swap(i, &mut sum);
+            forget(sum);
         });
         self
     }
@@ -148,7 +174,7 @@ where T: Add<Output = T> {
 
 impl<T: InVector> Vector<T> 
 where T: Mul<Output = T> + One {
-    /// sums up the elements of the vector
+    /// multiplies up the elements of the vector
     pub fn product(self) -> T {
         self.into_iter().fold(T::one(), |acc, x| acc * x)
     }
@@ -187,35 +213,29 @@ impl<T: InVector + Clone> Vector<T>
 
 // traits
 impl<'a, T: InVector + Clone> From<&'a [T]> for Vector<T> {
-    fn from(slice: &'a [T]) -> Self {
-        Vector(slice.into())
+    // get a vector from a slice
+    fn from(value: &'a [T]) -> Self {
+        Vector(value.into())
     }
 }
 
 impl<T: InVector> From<Vec<T>> for Vector<T> {
+    // get a vector from a vec
     fn from(value: Vec<T>) -> Self {
         Vector(value)
     }
 }
 
-impl<T: InVector, I: SliceIndex<[T]>> Index<I> for Vector<T> {
-    type Output = <Vec<T> as Index<I>>::Output;
+impl<T: InVector> Deref for Vector<T> {
+    type Target = Vec<T>;
 
-    fn index(&self, index: I) -> &Self::Output {
-        &self.0[index]
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
-impl<T: InVector, I: SliceIndex<[T]>> IndexMut<I> for Vector<T> {
-    fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        &mut self.0[index]
-    }
-}
-
-impl<T: InVector + Hash> Hash for Vector<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in self.iter() {
-            i.hash(state);
-        }
+impl<T: InVector> DerefMut for Vector<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

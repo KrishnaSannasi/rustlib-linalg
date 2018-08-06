@@ -11,19 +11,6 @@ extern crate rand;
 extern crate num;
 extern crate serde;
 
-#[macro_use]
-mod macros {
-    #[macro_export]
-    macro_rules! vectorize {
-        [$($e: expr),*] => {
-            Vector::from(vec![$($e),*])
-        };
-        [$e: expr;$c: expr] => {
-            Vector::from(vec![$e;$c])
-        }
-    }
-}
-
 #[cfg(not(feature = "no_std"))]
 pub mod vector;
 #[cfg(any(feature = "sized", feature = "no_std"))]
