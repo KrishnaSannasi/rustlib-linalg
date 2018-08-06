@@ -5,8 +5,6 @@ use super::typenum::marker_traits::NonZero;
 use core::{
     ops::{Add, Sub, Mul, Deref, DerefMut},
     convert::{TryFrom, Into},
-    hash::{Hash, Hasher},
-    cmp::Eq,
     fmt, mem
 };
 #[cfg(not(feature = "no_std"))]
@@ -14,68 +12,30 @@ use std::{
     vec::Vec,
     ops::{Add, Sub, Mul, Deref, DerefMut},
     convert::{TryFrom, Into},
-    hash::{Hash, Hasher},
-    cmp::Eq,
     fmt, mem
 };
 
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
 
+use super::typenum::{Diff, U1, U2};
 use super::generic_array::{GenericArray, ArrayLength};
-
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer};
 
 #[macro_export]
 macro_rules! vector {
-    [$($e: expr),*] => {
-        Vector(GenericArray::from([$($e),*]))
-    };
+    [$($e: expr),*] => ( $crate::Vector($crate::vector_sized::GenericArray::from([$($e),*])) );
     [$e:expr; $c:expr] => {{
-        struct Iter<MacroT> {
-            _val: MacroT,
-            count: usize
-        }
-
-        impl<MacroT> $crate::Iterator for Iter<MacroT> {
-            type Item = MacroT;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                if self.count > 0 {
-                    self.count -= 1;
-                    Some($e)
-                } else {
-                    None
-                }
-            }
-
-            fn size_hint(&self) -> (usize, Option<usize>) {
-                (self.count, Some(self.count))
-            }
-        }
-
-        impl<MacroT> $crate::ExactSizeIterator for Iter<MacroT> {
-            fn len(&self) -> usize {
-                self.count
-            }
-        }
-
-        struct IntoIter<MacroT>(MacroT, usize);
-
-        impl<MacroT> $crate::IntoIterator for IntoIter<MacroT> {
-            type Item = MacroT;
-            type IntoIter = Iter<MacroT>;
-
-            fn into_iter(self) -> Self::IntoIter {
-                Iter { _val: self.0, count: self.1 }
-            }
-        }
-
-        Vector(GenericArray::from_exact_iter(IntoIter($e, $c)).unwrap())
-    }}
+        Vector(GenericArray::from_exact_iter(
+            $crate::vector_sized::RepeatN { value: $e, count: $c }
+        ).unwrap())
+    }};
+    [use $e:expr; $c:expr] => {{
+        Vector(GenericArray::from_exact_iter(
+            $crate::vector_sized::RepeatNWith { value: $e, count: $c }
+        ).unwrap())
+    }};
 }
-
-use super::typenum::{IsGreater, Diff, U1, U2};
 
 // convienience accessors methods for common vector usages
 impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
@@ -107,7 +67,8 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn theta(&self) -> &T
-    where N: IsGreater<U1> {
+    where N: Sub<U1>,
+          Diff<N, U1>: NonZero {
         &self[1]
     }
 }
@@ -117,7 +78,7 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
     pub fn new() -> Self
     where T: Zero {
         use self::mem::{uninitialized, swap, forget};
-        let mut vec = vector![unsafe { uninitialized() }; N::to_usize()];
+        let mut vec = vector![use || unsafe { uninitialized() }; N::to_usize()];
 
         for i in 0..N::to_usize() {
             let mut var = T::zero();
@@ -128,9 +89,15 @@ impl<T: InVector, N: ArrayLength<T>> Vector<T, N> {
         vec
     }
 
-    /// get the dimension of the vector
+    /// get the dimension (length) of the vector
     pub fn dim(&self) -> usize {
         N::to_usize()
+    }
+    
+    /// gets value at index, and clones it. This is unnecessary if `T` is `Copy`.
+    pub fn get(&self, index: usize) -> T
+    where T: Clone {
+        self[index].clone()
     }
 
     /// conversion functions between different vector types (if the type implements from)
@@ -324,33 +291,10 @@ impl<T: InVector, N: ArrayLength<T>> DerefMut for Vector<T, N> {
     }
 }
 
-impl<T: InVector + Sized + fmt::Debug, N: ArrayLength<T>> fmt::Debug for Vector<T, N> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
-impl<T: InVector + Sized + Serialize, N: ArrayLength<T>> Serialize for Vector<T, N> {
-    fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
-    where Ser: Serializer {
-        self.0.serialize(serializer)
-    }
-}
-
 impl<'de, T: InVector + Default + Deserialize<'de>, N: ArrayLength<T>> Deserialize<'de> for Vector<T, N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where D: Deserializer<'de> {
         let arr: GenericArray<T, N> = <GenericArray<T, N> as Deserialize<'de>>::deserialize(deserializer)?;
         Ok(Vector(arr))
-    }
-}
-
-impl<T: InVector + Eq, N: ArrayLength<T> + PartialEq> Eq for Vector<T, N> { }
-
-impl<T: InVector + Hash, N: ArrayLength<T>> Hash for Vector<T, N> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in self.iter() {
-            i.hash(state);
-        }
     }
 }

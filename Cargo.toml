@@ -30,6 +30,7 @@ spec_create_100 = []
 rand = '0.4.2'
 num = '0.1.42'
 serde = '1.0.66'
+serde_derive = '1.0.70'
 
 typenum = { version = '1.10.0', optional = true }
 generic-array = { version = '0.11.1', optional = true, features = ["serde"] }
