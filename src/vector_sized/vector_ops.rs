@@ -7,9 +7,6 @@ use super::{Vector, InVector};
 use super::generic_array::ArrayLength;
 
 macro_rules! impl_op {
-    (build bin assign => $func:ident, $op:tt, $RHS:ty) => {
-        
-    };
     (own => $Op:ident, $func:ident, $op:tt) => {
         impl<N, T, U: Clone, O> $Op<U> for Vector<T, N>
             where T: InVector + $Op<U, Output = O>,

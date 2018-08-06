@@ -5,14 +5,10 @@ use std::ops::{Add, Sub, Mul, Index, IndexMut};
 use std::hash::{Hash, Hasher};
 use std::slice::SliceIndex;
 use std::convert::Into;
-use std::cmp::Eq;
 use std::result;
-use std::fmt;
 
 use rand::{Rng, Rand, thread_rng};
 use num::traits::*;
-
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
 pub type Result<T> = result::Result<T, String>;
 
@@ -20,27 +16,27 @@ pub type Result<T> = result::Result<T, String>;
 impl<T: InVector> Vector<T> {
     // extracts the first element of the vector, equivalent to vector[0]
     pub fn x(&self) -> &T {
-        &self.value[0]
+        &self[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn y(&self) -> &T {
-        &self.value[1]
+        &self[1]
     }
     
     // extracts the third element of the vector, equivalent to vector[2]
     pub fn z(&self) -> &T {
-        &self.value[2]
+        &self[2]
     }
     
     // extracts the first element of the vector, equivalent to vector[0]
     pub fn r(&self) -> &T {
-        &self.value[0]
+        &self[0]
     }
 
     // extracts the second element of the vector, equivalent to vector[1]
     pub fn theta(&self) -> &T {
-        &self.value[1]
+        &self[1]
     }
 }
 
@@ -48,14 +44,12 @@ impl<T: InVector> Vector<T> {
     /// creates a vector of 0.0s
     pub fn new(dim: usize) -> Self
     where T: Zero {
-        Vector {
-            value: (0..dim).map(|_| T::zero()).collect(),
-        }
+        Vector((0..dim).map(|_| T::zero()).collect())
     }
 
     /// get the dimension of the vector
     pub fn dim(&self) -> usize {
-        self.value.len()
+        self.0.len()
     }
 
     /// conversion functions between different vector types (if the type implements from)
@@ -68,13 +62,13 @@ impl<T: InVector> Vector<T> {
     /// maps the vector's component's according to the function provided
     pub fn map<U: InVector, F>(self, f: F) -> Vector<U>
         where F: Fn(T) -> U {
-        Vector { value: self.value.into_iter().map(f).collect::<Vec<U>>() }
+        Vector(self.into_iter().map(f).collect::<Vec<U>>())
     }
 
     /// maps the vector's component's according to the function provided
     pub fn map_ref<U: InVector, F>(&self, f: F) -> Vector<U>
         where F: Fn(&T) -> U {
-        Vector { value: self.value.iter().map(f).collect::<Vec<U>>() }
+        Vector(self.iter().map(f).collect::<Vec<U>>())
     }
 
     /// the square of the magnitude
@@ -104,7 +98,7 @@ impl<T: InVector> Vector<T> {
             value.push(v * two - one);
         }
 
-        Vector { value }.norm()
+        Vector(value).norm()
     }
 }
 
@@ -148,7 +142,7 @@ where T: Add<Output = T> {
     /// sums up the elements of the vector
     pub fn sum(self) -> T
     where T: Zero {
-        self.value.into_iter().fold(T::zero(), |acc, x| acc + x)
+        self.into_iter().fold(T::zero(), |acc, x| acc + x)
     }
 }
 
@@ -156,7 +150,7 @@ impl<T: InVector> Vector<T>
 where T: Mul<Output = T> + One {
     /// sums up the elements of the vector
     pub fn product(self) -> T {
-        self.value.into_iter().fold(T::one(), |acc, x| acc * x)
+        self.into_iter().fold(T::one(), |acc, x| acc * x)
     }
 }
 
@@ -194,13 +188,13 @@ impl<T: InVector + Clone> Vector<T>
 // traits
 impl<'a, T: InVector + Clone> From<&'a [T]> for Vector<T> {
     fn from(slice: &'a [T]) -> Self {
-        Self::from(<Vec<T>>::from(slice))
+        Vector(slice.into())
     }
 }
 
 impl<T: InVector> From<Vec<T>> for Vector<T> {
     fn from(value: Vec<T>) -> Self {
-        Self { value }
+        Vector(value)
     }
 }
 
@@ -208,44 +202,19 @@ impl<T: InVector, I: SliceIndex<[T]>> Index<I> for Vector<T> {
     type Output = <Vec<T> as Index<I>>::Output;
 
     fn index(&self, index: I) -> &Self::Output {
-        &self.value[index]
+        &self.0[index]
     }
 }
 
 impl<T: InVector, I: SliceIndex<[T]>> IndexMut<I> for Vector<T> {
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        &mut self.value[index]
+        &mut self.0[index]
     }
 }
-
-impl<T: InVector + Sized + fmt::Debug> fmt::Debug for Vector<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ret = format!("{:?}", self.value);
-        write!(f, "<{}>", &ret[1..ret.len()-1])
-    }
-}
-
-impl<T: InVector + Sized + Serialize> Serialize for Vector<T> {
-    fn serialize<Ser>(&self, serializer: Ser) -> result::Result<Ser::Ok, Ser::Error>
-    where Ser: Serializer {
-        self.value.serialize(serializer)
-    }
-}
-
-impl<'de, T: InVector + Sized + Deserialize<'de>> Deserialize<'de> for Vector<T> {
-    fn deserialize<D>(deserializer: D) -> result::Result<Self, D::Error>
-    where D: Deserializer<'de> {
-        let vec: Vec<T> = <Vec<T> as Deserialize<'de>>::deserialize(deserializer)?;
-
-        Ok(Self { value: vec })
-    }
-}
-
-impl<T: InVector + Eq + PartialEq> Eq for Vector<T> { }
 
 impl<T: InVector + Hash> Hash for Vector<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in self.value.iter() {
+        for i in self.iter() {
             i.hash(state);
         }
     }

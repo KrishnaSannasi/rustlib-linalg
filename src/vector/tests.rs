@@ -7,14 +7,14 @@ type VectorD = ::VectorF64;
 fn init() {
     let v = VectorI::new(2);
 
-    assert_eq!(v.value, vec![0, 0])
+    assert_eq!(v.0, vec![0, 0])
 }
 
 #[test]
 fn from_vec() {
     let v = VectorI::from(vec![1, 2, 3]);
 
-    assert_eq!(v.value, vec![1, 2, 3])
+    assert_eq!(v.0, vec![1, 2, 3])
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn from_slice() {
     let a = [1, 2, 3, 4, 5, 6];
     let v = VectorI::from(&a[1..3]);
 
-    assert_eq!(v.value, Vec::from(&a[1..3]))
+    assert_eq!(v.0, Vec::from(&a[1..3]))
 }
 
 #[test]

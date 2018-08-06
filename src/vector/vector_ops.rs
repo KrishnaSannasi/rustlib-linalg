@@ -1,21 +1,17 @@
-use super::{Vector, InVector};
-
-use std::prelude::v1::*;
+#[cfg(feature = "no_std")]
+use core::ops::*;
+#[cfg(not(feature = "no_std"))]
 use std::ops::*;
 
+use super::{Vector, InVector};
+
 macro_rules! impl_op {
-    (build assign => $func:ident, $op:tt, $RHS:ty) => {
-        default fn $func(&mut self, rhs: $RHS) {
-            self.value.iter_mut()
-                      .for_each(|a| *a $op rhs);
-        }
-    };
     (own => $Op:ident, $func:ident, $op:tt) => {
         impl<T, U: Clone, O> $Op<U> for Vector<T>
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
-
+        
             default fn $func(self, rhs: U) -> Self::Output {
                 self.map(|i| i.$func(rhs.clone()))
             }
@@ -26,7 +22,7 @@ macro_rules! impl_op {
             where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
-
+        
             default fn $func(self, rhs: U) -> Self::Output {
                 self.map_ref(|i| i.clone().$func(rhs.clone()))
             }
@@ -39,26 +35,26 @@ macro_rules! impl_op {
             type Output = Vector<O>;
 
             default fn $func(self, rhs: Vector<U>) -> Self::Output {
-                assert!(self.dim() == rhs.dim());
-                Vector { value: self.value.into_iter()
-                                          .zip(rhs.value.into_iter())
-                                          .map(|(i, j)| i.$func(j))
-                                          .collect() }
+                assert_eq!(self.dim(), rhs.dim());
+                Vector(self.into_iter()
+                           .zip(rhs.into_iter())
+                           .map(|(i, j)| i.$func(j))
+                           .collect())
             }
         }
     };
     (own, borrow => $Op:ident, $func:ident, $op:tt) => {
-        impl<'a, T, U, O> $Op<&'a Vector<U>> for Vector<T>
-            where T: InVector + $Op<&'a U, Output = O>,
+        impl<'a, T, U: Clone, O> $Op<&'a Vector<U>> for Vector<T>
+            where T: InVector + $Op<U, Output = O>,
                   U: InVector, O: InVector {
             type Output = Vector<O>;
 
             default fn $func(self, rhs: &'a Vector<U>) -> Self::Output {
-                assert!(self.dim() == rhs.dim());
-                Vector { value: self.value.into_iter()
-                                          .zip(rhs.value.iter())
-                                          .map(|(i, j)| i.$func(j.clone()))
-                                          .collect() }
+                assert_eq!(self.dim(), rhs.dim());
+                Vector(self.into_iter()
+                           .zip(rhs.iter())
+                           .map(|(i, j)| i.$func(j.clone()))
+                           .collect())
             }
         }
     };
@@ -69,11 +65,11 @@ macro_rules! impl_op {
             type Output = Vector<O>;
 
             default fn $func(self, rhs: Vector<U>) -> Self::Output {
-                assert!(self.dim() == rhs.dim());
-                Vector { value: self.value.iter()
-                                          .zip(rhs.value.into_iter())
-                                          .map(|(i, j)| i.clone().$func(j))
-                                          .collect() }
+                assert_eq!(self.dim(), rhs.dim());
+                Vector(self.iter()
+                           .zip(rhs.into_iter())
+                           .map(|(i, j)| i.clone().$func(j))
+                           .collect())
             }
         }
     };
@@ -84,11 +80,11 @@ macro_rules! impl_op {
             type Output = Vector<O>;
 
             default fn $func(self, rhs: &'a Vector<U>) -> Self::Output {
-                assert!(self.dim() == rhs.dim());
-                Vector { value: self.value.iter()
-                                          .zip(rhs.value.iter())
-                                          .map(|(i, j)| i.clone().$func(j.clone()))
-                                          .collect() }
+                assert_eq!(self.dim(), rhs.dim());
+                Vector(self.iter()
+                           .zip(rhs.iter())
+                           .map(|(i, j)| i.clone().$func(j.clone()))
+                           .collect())
             }
         }
     };
@@ -98,10 +94,10 @@ macro_rules! impl_op {
                   U: InVector {
             
             default fn $func(&mut self, rhs: Vector<U>) {
-                assert!(self.dim() == rhs.dim());
-                self.value.iter_mut()
-                        .zip(rhs.value.into_iter())
-                        .for_each(|(a, b)| a.$func(b));
+                assert_eq!(self.dim(), rhs.dim());
+                self.iter_mut()
+                    .zip(rhs.into_iter())
+                    .for_each(|(i, j)| i.$func(j))
             }
         }
     };
@@ -111,10 +107,10 @@ macro_rules! impl_op {
                   U: InVector {
             
             default fn $func(&mut self, rhs: &'a Vector<U>) {
-                assert!(self.dim() == rhs.dim());
-                self.value.iter_mut()
-                        .zip(rhs.value.iter())
-                        .for_each(|(a, b)| a.$func(b.clone()));
+                assert_eq!(self.dim(), rhs.dim());
+                self.iter_mut()
+                    .zip(rhs.iter())
+                    .for_each(|(i, j)| i.$func(j.clone()))
             }
         }
     };
@@ -124,10 +120,10 @@ macro_rules! impl_op {
                   U: InVector {
             
             default fn $func(&mut self, rhs: Vector<U>) {
-                assert!(self.dim() == rhs.dim());
-                self.value.iter_mut()
-                        .zip(rhs.value.into_iter())
-                        .for_each(|(a, b)| a.$func(b));
+                assert_eq!(self.dim(), rhs.dim());
+                self.iter_mut()
+                    .zip(rhs.into_iter())
+                    .for_each(|(i, j)| i.$func(j))
             }
         }
     };
@@ -137,10 +133,10 @@ macro_rules! impl_op {
                   U: InVector {
             
             default fn $func(&mut self, rhs: &'a Vector<U>) {
-                assert!(self.dim() == rhs.dim());
-                self.value.iter_mut()
-                        .zip(rhs.value.iter())
-                        .for_each(|(a, b)| a.$func(b.clone()));
+                assert_eq!(self.dim(), rhs.dim());
+                self.iter_mut()
+                    .zip(rhs.iter())
+                    .for_each(|(i, j)| i.$func(j.clone()))
             }
         }
     };
@@ -200,6 +196,7 @@ impl_op!(op => Div, div, / => borrow);
 impl<T: InVector, O: InVector> Neg for Vector<T>
 where T: Neg<Output = O> {
     type Output = Vector<O>;
+
     default fn neg(self) -> Self::Output {
         self.map(|x| -x)
     }
@@ -208,6 +205,7 @@ where T: Neg<Output = O> {
 impl<'a, T: InVector + Clone, O: InVector> Neg for &'a Vector<T>
 where T: Neg<Output = O> {
     type Output = Vector<O>;
+
     fn neg(self) -> Self::Output {
         self.map_ref(|x| -x.clone())
     }
@@ -216,6 +214,7 @@ where T: Neg<Output = O> {
 impl<T: InVector, O: InVector> Not for Vector<T>
 where T: Not<Output = O> {
     type Output = Vector<O>;
+
     default fn not(self) -> Self::Output {
         self.map(|x| !x)
     }
@@ -224,6 +223,7 @@ where T: Not<Output = O> {
 impl<'a, T: InVector + Clone, O: InVector> Not for &'a Vector<T>
 where T: Not<Output = O> {
     type Output = Vector<O>;
+    
     fn not(self) -> Self::Output {
         self.map_ref(|x| !x.clone())
     }

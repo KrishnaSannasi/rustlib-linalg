@@ -25,6 +25,8 @@ use super::InVector;
 #[derive(Clone, PartialEq, Eq, Debug, Serialize)]
 pub struct Vector<T: InVector, N: ArrayLength<T>>(pub GenericArray<T, N>);
 
+impl<T, N> !InVector for Vector<T, N> {}
+
 #[derive(Debug)]
 pub struct TryFromVectorError;
 

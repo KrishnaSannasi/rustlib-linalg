@@ -31,9 +31,9 @@ macro_rules! vector_create {
                 use std::mem::forget;
 
                 if self.dim() == count!($($var_name)*) {
-                    let slice = &*self.value as *const [T] as *const [T; count!($($var_name)*)];
+                    let slice = &*self.0 as *const [T] as *const [T; count!($($var_name)*)];
                     let array = unsafe { slice.read() };
-                    forget(self.value);
+                    forget(self.0);
 
                     Ok(array)
                 } else {
@@ -47,7 +47,7 @@ macro_rules! vector_create {
 
             fn try_into(self) -> Result<($( rm!($var_name, T) ),*), Self::Error> {
                 if self.dim() == count!($($var_name)*) {
-                    let mut i = self.value.into_iter();
+                    let mut i = self.into_iter();
                     Ok(($(
                         rm!($var_name, i.next().unwrap())
                     ),*))
@@ -59,14 +59,14 @@ macro_rules! vector_create {
 
         impl<T: InVector> From<($( rm!($var_name, T) ),*)> for Vector<T> {
             fn from(($($var_name),*): ($( rm!($var_name, T) ),*)) -> Self {
-                Self { value: vec![$($var_name),*] }
+                Vector(vec![$($var_name),*])
             }
         }
 
         impl<T: InVector> UpdateWith<[T; count!($($var_name)*)]> for Vector<T> {
             fn update_with(&mut self, mut new: [T; count!($($var_name)*)]) {
                 if self.dim() == count!($($var_name)*) {
-                    self.value.swap_with_slice(&mut new);
+                    self.0.swap_with_slice(&mut new);
                 } else {
                     panic!("tried to swap with array of different length")
                 }
@@ -76,7 +76,7 @@ macro_rules! vector_create {
         impl<T: InVector> UpdateWith<($( rm!($var_name, T) ),*)> for Vector<T> {
             fn update_with(&mut self, ($($var_name),*): ($( rm!($var_name, T) ),*)) {
                 if self.dim() == count!($($var_name)*) {
-                    self.value.swap_with_slice(&mut [$($var_name),*]);
+                    self.0.swap_with_slice(&mut [$($var_name),*]);
                 } else {
                     panic!("tried to swap with tuple of different length")
                 }
