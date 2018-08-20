@@ -14,10 +14,10 @@ mod tests;
 use self::generic_array::{GenericArray, ArrayLength};
 
 #[cfg(feature = "no_std")]
-use core::iter::{Iterator, ExactSizeIterator};
+use core::{fmt, iter::{Iterator, ExactSizeIterator}};
 #[cfg(not(feature = "no_std"))]
 #[cfg(feature = "sized")]
-use std::iter::{Iterator, ExactSizeIterator};
+use std::{fmt, iter::{Iterator, ExactSizeIterator}};
 
 use super::InVector;
 
@@ -25,7 +25,7 @@ use super::InVector;
 #[derive(Clone, PartialEq, Eq, Serialize)]
 pub struct Vector<T: InVector, N: ArrayLength<T>>(pub GenericArray<T, N>);
 
-impl<T: InVector + Debug, N: ArrayLength<T>> Debug for Vector<T, N> {
+impl<T: InVector + fmt::Debug, N: ArrayLength<T>> fmt::Debug for Vector<T, N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.0)
     }
