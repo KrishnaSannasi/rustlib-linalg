@@ -55,9 +55,9 @@ impl<T: InVector> Vector<T> {
         use self::mem::{uninitialized, swap, forget};
         let mut vec = vectorize![use || unsafe { uninitialized() }; dim];
 
-        for i in 0..dim {
+        for i in vec.iter_mut() {
             let mut var = T::zero();
-            swap(&mut var, &mut vec[i]);
+            swap(&mut var, i);
             forget(var); // so that uninitialized mem does not drop
         }
 
@@ -116,9 +116,9 @@ impl<T: InVector> Vector<T> {
         let one = T::one();
         let two = one + one;
         
-        for i in 0..dim {
+        for i in vec.iter_mut() {
             let v: T = rng.gen();
-            vec[i] = v * two - one;
+            *i = v * two - one;
         }
 
         vec.norm()
@@ -150,7 +150,7 @@ impl<T: InVector> Vector<T>
 impl<T: InVector> Vector<T> 
 where T: Add<Output = T> {
     /// adds the shift value to all the elements in a vector
-    pub fn shift(mut self, value: T) -> Self
+    pub fn shift(mut self, value: &T) -> Self
     where T: Clone {
         use self::mem::{uninitialized, swap, forget};
         self.iter_mut().for_each(|i| {
