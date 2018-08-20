@@ -22,8 +22,14 @@ use std::iter::{Iterator, ExactSizeIterator};
 use super::InVector;
 
 // Generic array will be changed to [T; N] when const generic numerics comes to nightly
-#[derive(Clone, PartialEq, Eq, Debug, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 pub struct Vector<T: InVector, N: ArrayLength<T>>(pub GenericArray<T, N>);
+
+impl<T: InVector + Debug, N: ArrayLength<T>> Debug for Vector<T, N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
 
 impl<T, N> !InVector for Vector<T, N> {}
 
